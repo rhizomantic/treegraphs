@@ -10,10 +10,10 @@ function drawNode(n) {
 
 class RenderCurves {
     constructor(df = {}) {
-        let args = df.props.renderConfig || {};
+        let args = df.props.render || {};
 
         this.type = args.type || "star";
-        this.levels = args.levels || [[0, 1, 1]];
+        this.levels = args.levels || [{stroke:0, weight:1}];
 
     }
 
@@ -29,8 +29,8 @@ class RenderCurves {
     }
 
     renderNode(n, level) {
-        stroke(level[0]);
-        strokeWeight( (n.depth+1) * level[1] );
+        stroke(level.stroke);
+        strokeWeight( level.weight );
 
         if(this.type == "bezier") {
             if(n.kids.length > 2) {

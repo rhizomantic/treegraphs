@@ -4,7 +4,7 @@ var seed;
 var density;
 var go = true;
 var render;
-var canvas, editor;
+var canvas, editor, area;
 
 // pi/2 = 1.5707
 // pi/3 = 1.047
@@ -36,12 +36,28 @@ function setup() {
     noFill();
     smooth();
 
-    reset();
+
+
+    editor = select("#editor");
+    area = select("#editor-area");
+    let update = select("#update");
+    update.mouseClicked( function(){ reset(true) } );
+    let generate = select("#generate");
+    generate.mouseClicked( function(){ reset(false) } );
+
+    reset( false );
 
     console.log("setup");
 }
 
-function reset() {
+function reset(fromEditor) {
+  //let area = select("#editor-area");
+  let _def;
+  if(fromEditor) {
+      _def = JSON.parse(area.value());
+  } else {
+      _def = generate();
+  }
   //tickers.clear();
   background("#FFFFFF");
   t = 0;
@@ -50,14 +66,14 @@ function reset() {
   noiseSeed(seed);
 
   graphs = [];
-  let _def = generate();
+  //let _def = generate();
   var k = new Graph( _def );
   graphs.push(k);
 
   render = new RenderCurves(_def);
 
-  editor = select("#editor");
-  let area = select("#editor-area");
+  //editor = select("#editor");
+
   area.value( JSON.stringify(_def, replacer, 2) );
 
   //text(defString, 20, 20);
@@ -69,12 +85,12 @@ function replacer(key, val) {
 }
 
 function generate() {
-    let budget = 120;
+    let budget = 200;
     let total = 0;
     let def = {
         props:{
-            "render": "curves",
-            "renderConfig": { "type": "tree", "levels": [[0, 8], ['#FFFFFF', 4]] }
+            render: { type: "tree", levels: [ {stroke: 0, weight:16 }, {stroke:'#FFFFFF', weight:12}, {stroke: 0, weight:8 }, {stroke:'#FFFFFF', weight:4} ] }
+            //"renderConfig": { "type": "tree", "levels": [[0, 8], ['#FFFFFF', 4]] }
         },
         net:[]
     };
@@ -136,6 +152,7 @@ function makeGroup(g, dad, graph) {
         n.parent = dad;
         n.parent.kids.push(n);
         n.depth = dad.depth+1;
+        n.graph = graph;
 
         graph.count ++;
         graph.depth = Math.max(graph.depth, n.depth);
@@ -193,6 +210,7 @@ class Node {
       this.depth = args.depth || 0;
 
       // Node references
+      this.graph = args.graph || null;
       this.parent = args.parent || null;
       this.anchor = args.anchor || null;
       this.kids = args.kids || [];
@@ -228,11 +246,13 @@ function mousePressed() {
 }
 
 function keyTyped() {
+  if (document.activeElement === document.getElementById('editor-area')) return;
+
   if (key === ' ') {
     go = !go;
     console.log("go", go);
   } else if(key === 'r') {
-    reset();
+    reset(false);
   } else if(key === 's') {
       let gt = getTime();
     saveCanvas("collider-"+ gt +".jpg");
@@ -356,10 +376,10 @@ function drawNode(n) {
 
 class RenderCurves {
     constructor(df = {}) {
-        let args = df.props.renderConfig || {};
+        let args = df.props.render || {};
 
         this.type = args.type || "star";
-        this.levels = args.levels || [[0, 1, 1]];
+        this.levels = args.levels || [{stroke:0, weight:1}];
 
     }
 
@@ -375,8 +395,8 @@ class RenderCurves {
     }
 
     renderNode(n, level) {
-        stroke(level[0]);
-        strokeWeight( (n.depth+1) * level[1] );
+        stroke(level.stroke);
+        strokeWeight( level.weight );
 
         if(this.type == "bezier") {
             if(n.kids.length > 2) {

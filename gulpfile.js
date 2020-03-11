@@ -9,14 +9,6 @@ var sourcemaps = require('gulp-sourcemaps');
 var jsFiles = ['src/main.js', 'src/spread.js', 'src/render.js'],
     jsDest = 'build';
 
-/*gulp.task('scripts', function() {
-    return gulp.src(jsFiles)
-        .pipe(concat('bundle.js'))
-        .pipe(gulp.dest(jsDest));
-});
-
-gulp.task('default', ['scripts']);*/
-
 function defaultTask(cb) {
     return gulp.src(jsFiles)
         .pipe(sourcemaps.init())
