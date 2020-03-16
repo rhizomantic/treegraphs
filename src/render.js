@@ -12,9 +12,17 @@ class RenderCurves {
     constructor(df = {}) {
         let args = df.props.render || {};
 
-        this.type = args.type || "star";
+        this.type= args.type || "tree";
         this.levels = args.levels || [{stroke:0, weight:1}];
+        for(let lv of this.levels) {
+            if(! lv.hasOwnProperty("type")) lv.type = this.type;
+            if(! lv.hasOwnProperty("stroke")) lv.stroke = 0;
+            if(! lv.hasOwnProperty("fill")) lv.fill = "#888888";
+            if(! lv.hasOwnProperty("weight")) lv.weight = 1;
+            if(! lv.hasOwnProperty("size")) lv.size = 1;
+        }
 
+        //console.log("levels", this.levels)
     }
 
     render(n) {
@@ -29,10 +37,9 @@ class RenderCurves {
     }
 
     renderNode(n, level) {
-        stroke(level.stroke);
-        strokeWeight( level.weight );
 
-        if(this.type == "bezier") {
+
+        if(level.type== "bezier") {
             if(n.kids.length > 2) {
                 for(let k=1; k<n.kids.length-1; k++) {
                     let ps = [
@@ -43,10 +50,12 @@ class RenderCurves {
                         n.kids[k].pos[0] + (n.kids[k+1].pos[0] - n.kids[k].pos[0]) / 2,
                         n.kids[k].pos[1] + (n.kids[k+1].pos[1] - n.kids[k].pos[1]) / 2
                     ];
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weight );
                     bezier(ps[0], ps[1], ps[2], ps[3], ps[2], ps[3], ps[4], ps[5]);
                 }
             }
-        } else if(this.type == "bezier-closed") {
+        } else if(level.type== "bezier-closed") {
             if(n.kids.length > 2) {
                 for(let k=0; k<n.kids.length; k++) {
                     let prv = k==0 ? n.kids.length-1 : k-1;
@@ -59,30 +68,40 @@ class RenderCurves {
                         n.kids[k].pos[0] + (n.kids[nxt].pos[0] - n.kids[k].pos[0]) / 2,
                         n.kids[k].pos[1] + (n.kids[nxt].pos[1] - n.kids[k].pos[1]) / 2
                     ];
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weight );
                     bezier(ps[0], ps[1], ps[2], ps[3], ps[2], ps[3], ps[4], ps[5]);
                 }
             }
-        } else if(this.type == "polygon") {
+        } else if(level.type== "polygon") {
             if(n.kids.length > 1) {
                 for(let k=1; k<n.kids.length; k++) {
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weight );
                     line(n.kids[k-1].pos[0], n.kids[k-1].pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
                 }
             }
-        } else if(this.type == "tree") {
+        } else if(level.type== "tree") {
             for(let k=0; k<n.kids.length; k++) {
-                line(n.pos[0], n.pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
+                stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                strokeWeight( n.kids[k].weight * level.weight );
+                line(n.kids[k].anchor.pos[0], n.kids[k].anchor.pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
+                //if(t == 6) console.log(k, n.pos[0], n.pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
             }
-        } else if(this.type == "circles") {
+        } else if(level.type== "circles") {
             for(let k=0; k<n.kids.length; k++) {
-                ellipse( n.kids[k].pos[0], n.kids[k].pos[1], n.kids[k].size, n.kids[k].size);
+                let sz = n.kids[k].size * level.size;
+                fill(level.fill == "node" ? n.kids[k].fill : level.fill);
+                noStroke();
+                ellipse( n.kids[k].pos[0], n.kids[k].pos[1], sz, sz);
             }
-        }  else if(this.type == "star") {
+        }  else if(level.type== "star") {
             if(n.kids.length > 1) {
                 for(let k=1; k<n.kids.length; k++) {
                     bezier(n.kids[k-1].pos[0], n.kids[k-1].pos[1], n.pos[0], n.pos[1], n.pos[0], n.pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
                 }
             }
-        } else if(this.type == "umbrella") {
+        } else if(level.type== "umbrella") {
             if(n.kids.length > 1) {
                 for(let k=1; k<n.kids.length; k++) {
                     let hlf = [ (n.kids[k-1].pos[0] - n.kids[k].pos[0]) / 2, (n.kids[k-1].pos[1] - n.kids[k].pos[1]) / 2 ];
@@ -90,7 +109,7 @@ class RenderCurves {
                     bezier(n.kids[k].pos[0], n.kids[k].pos[1], anc[0], anc[1], anc[0], anc[1], n.kids[k-1].pos[0], n.kids[k-1].pos[1]);
                 }
             }
-        } else if(this.type == "snake") {
+        } else if(level.type== "snake") {
             if(n.kids.length > 1) {
                 for(let k=1; k<n.kids.length; k++) {
                     let hlf = [ (n.kids[k-1].pos[0] - n.kids[k].pos[0]) / 2, (n.kids[k-1].pos[1] - n.kids[k].pos[1]) / 2 ];
@@ -101,7 +120,7 @@ class RenderCurves {
                     bezier(n.kids[k].pos[0], n.kids[k].pos[1], anc[0], anc[1], anc[2], anc[3], n.kids[k-1].pos[0], n.kids[k-1].pos[1]);
                 }
             }
-        }  else if(this.type == "petals") {
+        }  else if(level.type== "petals") {
             if(n.kids.length > 1) {
                 for(let k=1; k<n.kids.length; k++) {
                     let hlf = [ (n.kids[k-1].pos[0] - n.kids[k].pos[0]) / 2, (n.kids[k-1].pos[1] - n.kids[k].pos[1]) / 2 ];

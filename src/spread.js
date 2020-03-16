@@ -25,17 +25,40 @@ function parseCurve(c, n) {
                 else if(p == "noise") trm *= noise(n.parent.nrm, n.nrm);
                 else if(p == "dix") trm *= n.parent.nrm;
                 else if(p == "drnd") trm *= n.parent.rnd;
+                else if(p == "depth") trm *= n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth;
+                else if(p == "idepth") trm *= n.graph.depth == 1 ? 1 : 1 - 1/n.graph.depth * n.depth;
                 else trm *= parseFloat(p);
             }
             out.base += trm;
         }
     }
-    //console.log(out);
+    //console.log("curve", n.graph.depth, n.depth, (n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth) );
 
     return out;
 }
 
 function moveNode(n) {
+    if(n.anchor !== null) {
+        //let trn = n.parent.rot + n.turn;
+
+        let _mirror = (n.parent.anchor != null && n.parent.mirror && n.parent.anchor.ix%2 == 0) ^ ( n.mirror && n.parent.ix%2 == 0);
+
+        n.rot = _mirror? n.parent.rot - n.turn : n.parent.rot + n.turn;
+
+        n.pos = [
+            n.anchor.pos[0] + n.step * cos(n.rot),
+            n.anchor.pos[1] + n.step * sin(n.rot)
+        ]
+
+        //if(t == 5) console.log(n.depth, n.ix, n.step, n.rot);
+    }
+
+    for(let k of n.kids) {
+        moveNode(k);
+    }
+}
+
+/*function moveNode(n) {
     if(n.anchor !== null) {
         let trn;
         if(isNaN(n.turn)) {
@@ -73,4 +96,4 @@ function moveNode(n) {
     for(let k of n.kids) {
         moveNode(k);
     }
-}
+}*/

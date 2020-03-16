@@ -5,13 +5,14 @@ var density;
 var go = true;
 var render;
 var canvas, editor, area;
+var tweenable = ["step", "turn", "size", "weight"];
 
 // pi/2 = 1.5707
 // pi/3 = 1.047
 // pi/4 = 0.7853
 var graphs = [];
 
-var def = {
+var def0 = {
     "props": {
         "render": "curves",
         "renderConfig": { "type": "petals", "levels": [['#FFCC0088', 8], ['rgba(255, 0, 0, 0.1)', 4]] }
@@ -21,6 +22,118 @@ var def = {
             //{ "type": "chain", "num": 3,  "step": 40, "turn": 0.5 }
         ]
     }
+};
+
+var def = {
+  "props": {
+    "render": {
+      "type": "tree",
+      "levels": [
+        {
+          "type": "circles",
+          "size": 1.2,
+          "fill": "#666666",
+          "stroke": 0,
+          "weight": 1
+        },
+        {
+          "type": "circles",
+          "size": 1,
+          "fill": "#FFFFFF",
+          "stroke": 0,
+          "weight": 1
+        },
+        {
+          "stroke": 0,
+          "weight": 1.5,
+          "type": "tree",
+          "fill": "#888888",
+          "size": 1
+        },
+        {
+          "stroke": "#FFFFFF",
+          "weight": 1,
+          "type": "tree",
+          "fill": "#888888",
+          "size": 1
+        }
+      ]
+    }
+  },
+  "net": [
+    {
+      "num": 2,
+      "type": "fan",
+      "step": {
+        "min": 124.75,
+        "dif": 0,
+        "terms": "ix"
+      },
+      "turn": {
+        "min": 1.57,
+        "dif": 6.28,
+        "terms": "ix"
+      },
+      "mirror": false,
+      "weight": 2,
+      "size": {
+        "min": 10,
+        "dif": 40,
+        "terms": "depth"
+      },
+      "children": [
+        {
+          "num": 3,
+          "type": "fan",
+          "step": {
+            "min": 142.94,
+            "dif": 0,
+            "terms": "ix"
+          },
+          "turn": {
+            "min": 1.57,
+            "dif": 6.28,
+            "terms": "ix"
+          },
+          "mirror": false,
+          "weight": 2,
+          "size": {
+            "min": 10,
+            "dif": 40,
+            "terms": "depth"
+          },
+          "children": [
+            {
+              "num": 4,
+              "type": "fan",
+              "step": {
+                "min": 51.87,
+                "dif": 0,
+                "terms": "ix"
+              },
+              "turn": {
+                "min": 1.57,
+                "dif": 6.28,
+                "terms": "ix"
+              },
+              "mirror": false,
+              "weight": 2,
+              "size": {
+                "min": 10,
+                "dif": 40,
+                "terms": "depth"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "pos": [
+        702.5,
+        503.5
+      ]
+    }
+  ]
 };
 
 
@@ -56,7 +169,7 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = generate();
+      _def = def;// generate();
   }
   //tickers.clear();
   background("#FFFFFF");
@@ -76,7 +189,6 @@ function reset(fromEditor) {
 
   area.value( JSON.stringify(_def, replacer, 2) );
 
-  //text(defString, 20, 20);
 }
 
 function replacer(key, val) {
@@ -85,11 +197,11 @@ function replacer(key, val) {
 }
 
 function generate() {
-    let budget = 200;
+    let budget = 20;
     let total = 0;
     let def = {
         props:{
-            render: { type: "tree", levels: [ {stroke: 0, weight:16 }, {stroke:'#FFFFFF', weight:12}, {stroke: 0, weight:8 }, {stroke:'#FFFFFF', weight:4} ] }
+            render: { type: "tree", levels: [ {type: "circles", size: 1.2, fill:"#666666" }, {type: "circles", size: 1, fill:"#FFFFFF" }, {stroke: 0, weight:1.5 }, {stroke:'#FFFFFF', weight:1} ] }
             //"renderConfig": { "type": "tree", "levels": [[0, 8], ['#FFFFFF', 4]] }
         },
         net:[]
@@ -101,7 +213,7 @@ function generate() {
         let num = Math.floor( Math.pow(Math.random(), 2) * 10 ) + 2;
         while(total + dn*num > budget && num > 1) {
             num --;
-            console.log(num, dn, total);
+            //console.log(num, dn, total);
         }
         let neo = {
             num: num,
@@ -109,24 +221,26 @@ function generate() {
             step: { min:Math.random() * 120 + 30, dif:0 },
             turn: { min:PI/2, dif:(TWO_PI) },
             mirror: num % 2 == 0,
+            weight: 2,
+            size: { min:10, dif:40, terms:"depth"},
             children:[]
         };
         dad.push(neo);
         total += dn * num;
 
         if(Math.random() < 0.7) {
-            console.log("child", num, dn, total);
+            //console.log("child", num, dn, total);
             dad = neo.children;
             dn *= num;
 
         } else {
-            console.log("sibling", num, dn, total);
+            //console.log("sibling", num, dn, total);
         }
     }
 
     def.net[0].pos = [windowWidth/2, windowHeight/2];
 
-    console.log(total, def);
+    //console.log(total, def);
     return def;
 }
 
@@ -134,6 +248,7 @@ function draw() {
   if(go) {
       background("#FFFFFF");
       for(let g of graphs) {
+          g.root.update();
           moveNode(g.root);
           //drawNode(g.root);
           render.render(g.root);
@@ -159,14 +274,24 @@ function makeGroup(g, dad, graph) {
         //console.log(n);
 
         if(g.type == "chain" && i > 0) {
-            n.anchor = n.parent.kids[i-1];
+            n.anchor = dad.kids[i-1];
         } else {
             n.anchor = dad;
         }
 
-        n.turn = isNaN(g.turn) ? parseCurve(g.turn, n) : g.turn;// n.parent.turn + g.turn * n.ix;
+        //n.turn = isNaN(g.turn) ? parseCurve(g.turn, n) : g.turn;// n.parent.turn + g.turn * n.ix;
+        //n.step = isNaN(g.step) ? parseCurve(g.step, n) : g.step;
+        n.type = g.type;
         n.rot = 0;
-        n.step = isNaN(g.step) ? parseCurve(g.step, n) : g.step;
+        n.turn = g.turn;
+        n.step = g.step;
+        n.mirror = g.mirror;
+        n.size = g.size;
+        n.weight = g.weight;
+        n.fill = g.fill;
+        n.stroke = g.stroke;
+
+        n.init();
 
         if(g.children) {
             for(let j=0; j<g.children.length; j++) {
@@ -174,6 +299,7 @@ function makeGroup(g, dad, graph) {
             }
         }
     }
+
 }
 
 
@@ -188,6 +314,7 @@ class Graph {
     for(let i=0; i<args.net.length; i++){
         makeGroup(args.net[i], this.root, this);
     }
+    this.root.init();
 
     console.log("graph", this);
   }
@@ -195,47 +322,76 @@ class Graph {
 
 /***** NODE *****/
 class Node {
-  constructor(args = {}) {
-      //properties
-      this.ix = args.ix || 0;
-      this.nrm = args.nrm || 0;
-      this.rnd = args.rnd || Math.random();
-      this.pos = args.pos || [windowWidth/2, windowHeight/2];
-      this.step = args.step || 30;
-      this.turn = args.turn || 0;
-      this.rot = args.rot || 0;
-      this.mirrot = args.mirror || false;
-      this.size = args.size || 20;
-      this.weight = args.weight || 1;
-      this.depth = args.depth || 0;
+    constructor(args = {}) {
+        //properties
+        this.ix = args.ix || 0;
+        this.nrm = args.nrm || 0;
+        this.rnd = args.rnd || Math.random();
+        this.pos = args.pos || [windowWidth / 2, windowHeight / 2];
+        this.step = args.step || 30;
+        this.turn = args.turn || 0;
+        this.rot = args.rot || 0;
+        this.mirror = args.mirror || false;
+        this.size = args.size || 20;
+        this.weight = args.weight || 1;
+        this.depth = args.depth || 0;
+        this.fill = args.fill || "#888888";
+        this.stroke = args.stroke || 0;
 
-      // Node references
-      this.graph = args.graph || null;
-      this.parent = args.parent || null;
-      this.anchor = args.anchor || null;
-      this.kids = args.kids || [];
-      
-  }
+        // Node references
+        this.graph = args.graph || null;
+        this.parent = args.parent || null;
+        this.anchor = args.anchor || null;
+        this.kids = args.kids || [];
+
+        this.curves = {};
+
+    }
+
+    init() {
+        for (let tw of tweenable) {
+            if (isNaN(this[tw])) {
+                this.curves[tw] = parseCurve(this[tw], this);
+            }
+        }
+
+        for(let k of this.kids) {
+            k.init();
+        }
+    }
+
+    update() {
+        for(let [prop, val] of Object.entries(this.curves)) {
+            let x = val.base;
+            if(val.dur > 0) x += (1 / val.dur) * (t % (val.dur+1)) * val.time;
+            if(x > 1) x %= 1;
+            this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
+        }
+
+        for(let k of this.kids) {
+            k.update();
+        }
+    }
 }
 
 
-function ease(type, t, p) {
+function ease(type, x, p) {
     if(type == "simple") {
-        return p < 0 ? 1 - Math.pow(1-t, Math.abs(p)) : Math.pow(t, Math.abs(p));
+        return p < 0 ? 1 - Math.pow(1-x, Math.abs(p)) : Math.pow(x, Math.abs(p));
     } else if (type == "IO") {
         //if(t < 0.5) return easeSimple(t*2, p) * 0.5;
         //else return (1 - easeSimple(1-(t-0.5)*2, p)) * 0.5 + 0.5;
-        if(t < 0.5) return (p < 0 ? 1 - Math.pow(1-t*2, Math.abs(p)) : Math.pow(t*2, Math.abs(p))) * 0.5;
-        else return (1 - (p < 0 ? 1 - Math.pow(1-(1-(t-0.5)*2), Math.abs(p)) : Math.pow(1-(t-0.5)*2, Math.abs(p)))) * 0.5 + 0.5;
+        if(x < 0.5) return (p < 0 ? 1 - Math.pow(1-x*2, Math.abs(p)) : Math.pow(x*2, Math.abs(p))) * 0.5;
+        else return (1 - (p < 0 ? 1 - Math.pow(1-(1-(x-0.5)*2), Math.abs(p)) : Math.pow(1-(x-0.5)*2, Math.abs(p)))) * 0.5 + 0.5;
     } else if (type == "hill") {
-        t = t < 0.5 ? t * 2 : 1 - (t-0.5)*2;
-        return p < 0 ? 1 - Math.pow(1-t, Math.abs(p)) : Math.pow(t, Math.abs(p));
+        x = x < 0.5 ? x * 2 : 1 - (x-0.5)*2;
+        return p < 0 ? 1 - Math.pow(1-x, Math.abs(p)) : Math.pow(x, Math.abs(p));
     } else if (type == "sine") {
-        return Math.sin(t*p*Math.PI*2) * 0.5 + 0.5;
+        return Math.sin(x*p*Math.PI*2) * 0.5 + 0.5;
     } else if (type == "noise") {
-        return noise(t*16);
+        return noise(x*16);
     } else {
-        return t;
+        return x;
     }
 
 }
@@ -246,25 +402,25 @@ function mousePressed() {
 }
 
 function keyTyped() {
-  if (document.activeElement === document.getElementById('editor-area')) return;
+    if (document.activeElement === document.getElementById('editor-area')) return;
 
-  if (key === ' ') {
-    go = !go;
-    console.log("go", go);
-  } else if(key === 'r') {
-    reset(false);
-  } else if(key === 's') {
-      let gt = getTime();
-    saveCanvas("collider-"+ gt +".jpg");
-    saveJSON(defs, "collider-"+ gt +".jpg", false);
-  } else if(key === 'g') {
-    generate();
-  }  else if(key === 'e') {
-      if(editor.style("display") == "block") editor.hide();
-      else editor.show();
-  }
-  // uncomment to prevent any default behavior
-  //return false;
+    if (key === ' ') {
+        go = !go;
+        console.log("go", go);
+    } else if (key === 'r') {
+        reset(false);
+    } else if (key === 's') {
+        let gt = getTime();
+        saveCanvas("collider-" + gt + ".jpg");
+        saveJSON(defs, "collider-" + gt + ".jpg", false);
+    } else if (key === 'g') {
+        generate();
+    } else if (key === 'e') {
+        if (editor.style("display") == "block") editor.hide();
+        else editor.show();
+    }
+    // uncomment to prevent any default behavior
+    //return false;
 }
 
 function contrast(n, f) {
