@@ -169,7 +169,7 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = def;// generate();
+      _def = generate();
   }
   //tickers.clear();
   background("#FFFFFF");
@@ -183,11 +183,9 @@ function reset(fromEditor) {
   var k = new Graph( _def );
   graphs.push(k);
 
-  render = new RenderCurves(_def);
-
-  //editor = select("#editor");
-
   area.value( JSON.stringify(_def, replacer, 2) );
+
+  render = new RenderCurves(_def);
 
 }
 
@@ -197,11 +195,16 @@ function replacer(key, val) {
 }
 
 function generate() {
-    let budget = 20;
+    let budget = 200;
     let total = 0;
+    let angles = [PI/2, PI, PI*2];
     let def = {
         props:{
-            render: { type: "tree", levels: [ {type: "circles", size: 1.2, fill:"#666666" }, {type: "circles", size: 1, fill:"#FFFFFF" }, {stroke: 0, weight:1.5 }, {stroke:'#FFFFFF', weight:1} ] }
+            render: { levels: [
+                {type:"tree", stroke: '#999999', weightMult:0, weightAdd:1 },
+                {type:"bezier", stroke: '#00000088', weightAdd:4 },
+                {type:"bezier", stroke:'#FFFFFF88', weight:0} ]
+            }
             //"renderConfig": { "type": "tree", "levels": [[0, 8], ['#FFFFFF', 4]] }
         },
         net:[]
@@ -219,9 +222,9 @@ function generate() {
             num: num,
             type: Math.random() < 0.6 ? "fan" : "chain",
             step: { min:Math.random() * 120 + 30, dif:0 },
-            turn: { min:PI/2, dif:(TWO_PI) },
+            turn: { min:PI/2, dif:angles[Math.floor(random(angles.length))] },
             mirror: num % 2 == 0,
-            weight: 2,
+            weight: { min:2, dif:2, terms:"depth"},
             size: { min:10, dif:40, terms:"depth"},
             children:[]
         };
@@ -364,7 +367,7 @@ class Node {
         for(let [prop, val] of Object.entries(this.curves)) {
             let x = val.base;
             if(val.dur > 0) x += (1 / val.dur) * (t % (val.dur+1)) * val.time;
-            if(x > 1) x %= 1;
+            //if(x > 1) x %= 1;
             this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
         }
 
@@ -470,8 +473,10 @@ function parseCurve(c, n) {
                 else if(p == "noise") trm *= noise(n.parent.nrm, n.nrm);
                 else if(p == "dix") trm *= n.parent.nrm;
                 else if(p == "drnd") trm *= n.parent.rnd;
-                else if(p == "depth") trm *= n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth;
-                else if(p == "idepth") trm *= n.graph.depth == 1 ? 1 : 1 - 1/n.graph.depth * n.depth;
+                else if(p == "depth") trm *= n.depth;
+                else if(p == "idepth") trm *= n.graph.depth - n.depth;
+                else if(p == "depth-nrm") trm *= 1/n.graph.depth * n.depth;
+                else if(p == "idepth-nrm") trm *= 1 - 1/n.graph.depth * n.depth;
                 else trm *= parseFloat(p);
             }
             out.base += trm;
@@ -563,11 +568,13 @@ class RenderCurves {
             if(! lv.hasOwnProperty("type")) lv.type = this.type;
             if(! lv.hasOwnProperty("stroke")) lv.stroke = 0;
             if(! lv.hasOwnProperty("fill")) lv.fill = "#888888";
-            if(! lv.hasOwnProperty("weight")) lv.weight = 1;
-            if(! lv.hasOwnProperty("size")) lv.size = 1;
+            if(! lv.hasOwnProperty("weightAdd")) lv.weightAdd = 0;
+            if(! lv.hasOwnProperty("weightMult")) lv.weightMult = 1;
+            if(! lv.hasOwnProperty("sizeAdd")) lv.sizeAdd = 0;
+            if(! lv.hasOwnProperty("sizeMult")) lv.sizeMult = 1;
         }
 
-        //console.log("levels", this.levels)
+        console.log("render type", this.type);
     }
 
     render(n) {
@@ -583,6 +590,8 @@ class RenderCurves {
 
     renderNode(n, level) {
 
+        noFill();
+        noStroke();
 
         if(level.type== "bezier") {
             if(n.kids.length > 2) {
@@ -596,7 +605,7 @@ class RenderCurves {
                         n.kids[k].pos[1] + (n.kids[k+1].pos[1] - n.kids[k].pos[1]) / 2
                     ];
                     stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
-                    strokeWeight( n.kids[k].weight * level.weight );
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                     bezier(ps[0], ps[1], ps[2], ps[3], ps[2], ps[3], ps[4], ps[5]);
                 }
             }
@@ -614,7 +623,7 @@ class RenderCurves {
                         n.kids[k].pos[1] + (n.kids[nxt].pos[1] - n.kids[k].pos[1]) / 2
                     ];
                     stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
-                    strokeWeight( n.kids[k].weight * level.weight );
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                     bezier(ps[0], ps[1], ps[2], ps[3], ps[2], ps[3], ps[4], ps[5]);
                 }
             }
@@ -622,27 +631,28 @@ class RenderCurves {
             if(n.kids.length > 1) {
                 for(let k=1; k<n.kids.length; k++) {
                     stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
-                    strokeWeight( n.kids[k].weight * level.weight );
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                     line(n.kids[k-1].pos[0], n.kids[k-1].pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
                 }
             }
         } else if(level.type== "tree") {
             for(let k=0; k<n.kids.length; k++) {
                 stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
-                strokeWeight( n.kids[k].weight * level.weight );
+                strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                 line(n.kids[k].anchor.pos[0], n.kids[k].anchor.pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
                 //if(t == 6) console.log(k, n.pos[0], n.pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
             }
         } else if(level.type== "circles") {
             for(let k=0; k<n.kids.length; k++) {
-                let sz = n.kids[k].size * level.size;
+                let sz = n.kids[k].size * level.sizeMult + level.sizeAdd;
                 fill(level.fill == "node" ? n.kids[k].fill : level.fill);
-                noStroke();
                 ellipse( n.kids[k].pos[0], n.kids[k].pos[1], sz, sz);
             }
         }  else if(level.type== "star") {
             if(n.kids.length > 1) {
                 for(let k=1; k<n.kids.length; k++) {
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                     bezier(n.kids[k-1].pos[0], n.kids[k-1].pos[1], n.pos[0], n.pos[1], n.pos[0], n.pos[1], n.kids[k].pos[0], n.kids[k].pos[1]);
                 }
             }
@@ -651,6 +661,8 @@ class RenderCurves {
                 for(let k=1; k<n.kids.length; k++) {
                     let hlf = [ (n.kids[k-1].pos[0] - n.kids[k].pos[0]) / 2, (n.kids[k-1].pos[1] - n.kids[k].pos[1]) / 2 ];
                     let anc = [ (n.kids[k].pos[0] + hlf[0]) - hlf[1], (n.kids[k].pos[1] + hlf[1]) + hlf[0] ];
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                     bezier(n.kids[k].pos[0], n.kids[k].pos[1], anc[0], anc[1], anc[0], anc[1], n.kids[k-1].pos[0], n.kids[k-1].pos[1]);
                 }
             }
@@ -662,6 +674,8 @@ class RenderCurves {
                         (n.kids[k].pos[0] + hlf[0]) - hlf[1], (n.kids[k].pos[1] + hlf[1]) + hlf[0],
                         (n.kids[k].pos[0] + hlf[0]) + hlf[1], (n.kids[k].pos[1] + hlf[1]) - hlf[0]
                     ];
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                     bezier(n.kids[k].pos[0], n.kids[k].pos[1], anc[0], anc[1], anc[2], anc[3], n.kids[k-1].pos[0], n.kids[k-1].pos[1]);
                 }
             }
@@ -673,6 +687,8 @@ class RenderCurves {
                         (n.kids[k].pos[0] + hlf[0]) - hlf[1], (n.kids[k].pos[1] + hlf[1]) + hlf[0],
                         (n.kids[k].pos[0] + hlf[0]) + hlf[1], (n.kids[k].pos[1] + hlf[1]) - hlf[0]
                     ];
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                     bezier(pts[0], pts[1], n.kids[k-1].pos[0], n.kids[k-1].pos[1], n.kids[k-1].pos[0], n.kids[k-1].pos[1], pts[2], pts[3]);
                     bezier(pts[0], pts[1], n.kids[k].pos[0], n.kids[k].pos[1], n.kids[k].pos[0], n.kids[k].pos[1], pts[2], pts[3]);
 

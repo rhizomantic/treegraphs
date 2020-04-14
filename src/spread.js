@@ -25,8 +25,10 @@ function parseCurve(c, n) {
                 else if(p == "noise") trm *= noise(n.parent.nrm, n.nrm);
                 else if(p == "dix") trm *= n.parent.nrm;
                 else if(p == "drnd") trm *= n.parent.rnd;
-                else if(p == "depth") trm *= n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth;
-                else if(p == "idepth") trm *= n.graph.depth == 1 ? 1 : 1 - 1/n.graph.depth * n.depth;
+                else if(p == "depth") trm *= n.depth;
+                else if(p == "idepth") trm *= n.graph.depth - n.depth;
+                else if(p == "depth-nrm") trm *= 1/n.graph.depth * n.depth;
+                else if(p == "idepth-nrm") trm *= 1 - 1/n.graph.depth * n.depth;
                 else trm *= parseFloat(p);
             }
             out.base += trm;
