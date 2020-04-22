@@ -6,7 +6,7 @@ var minify = require('gulp-minify');
 var sourcemaps = require('gulp-sourcemaps');
 
 //script paths
-var jsFiles = ['src/main.js', 'src/spread.js', 'src/render.js'],
+var jsFiles = ['src/main.js', 'src/generate.js', 'src/spread.js', 'src/render.js'],
     jsDest = 'build';
 
 function defaultTask(cb) {

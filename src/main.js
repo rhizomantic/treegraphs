@@ -169,7 +169,7 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = generate();
+      _def = generateSimple();
   }
   //tickers.clear();
   background("#FFFFFF");
@@ -194,58 +194,7 @@ function replacer(key, val) {
     return val;
 }
 
-function generate() {
-    let budget = 200;
-    let total = 0;
-    let angles = [PI/2, PI, PI*2];
-    let def = {
-        props:{
-            render: { levels: [
-                {type:"tree", stroke: '#999999', weightMult:0, weightAdd:1 },
-                {type:"bezier", stroke: '#00000088', weightAdd:4 },
-                {type:"bezier", stroke:'#FFFFFF88', weight:0} ]
-            }
-            //"renderConfig": { "type": "tree", "levels": [[0, 8], ['#FFFFFF', 4]] }
-        },
-        net:[]
-    };
-    let dad = def.net;
-    let dn = 1;
 
-    while(total < budget*0.8) {
-        let num = Math.floor( Math.pow(Math.random(), 2) * 10 ) + 2;
-        while(total + dn*num > budget && num > 1) {
-            num --;
-            //console.log(num, dn, total);
-        }
-        let neo = {
-            num: num,
-            type: Math.random() < 0.6 ? "fan" : "chain",
-            step: { min:Math.random() * 120 + 30, dif:0 },
-            turn: { min:PI/2, dif:angles[Math.floor(random(angles.length))] },
-            mirror: num % 2 == 0,
-            weight: { min:2, dif:2, terms:"depth"},
-            size: { min:10, dif:40, terms:"depth"},
-            children:[]
-        };
-        dad.push(neo);
-        total += dn * num;
-
-        if(Math.random() < 0.7) {
-            //console.log("child", num, dn, total);
-            dad = neo.children;
-            dn *= num;
-
-        } else {
-            //console.log("sibling", num, dn, total);
-        }
-    }
-
-    def.net[0].pos = [windowWidth/2, windowHeight/2];
-
-    //console.log(total, def);
-    return def;
-}
 
 function draw() {
   if(go) {
@@ -366,8 +315,16 @@ class Node {
     update() {
         for(let [prop, val] of Object.entries(this.curves)) {
             let x = val.base;
-            if(val.dur > 0) x += (1 / val.dur) * (t % (val.dur+1)) * val.time;
-            //if(x > 1) x %= 1;
+            //if(val.dur > 0) x += (1 / val.dur) * (t % (val.dur+1)) * val.time;
+            if(val.dur > 0) { // come and go
+                let ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
+                x += (1 / val.dur) * ti * val.time;
+            }
+            if(x > 1) x %= 1;
+            //if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
+            //if(this.ix == 23 && prop == "step") console.log(x, floor(x%2));
+
+
             this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
         }
 
