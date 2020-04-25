@@ -7,6 +7,7 @@ function parseCurve(c, n) {
     out.min = c.min || 0;
     //out.max = c.max || 1;
     out.dif = c.dif || 0;
+    //out.var = c.var || c.dif / n.parent.kids.length;
     out.dur = c.dur || 0;
 
     out.base = 0;
@@ -17,6 +18,8 @@ function parseCurve(c, n) {
         let ps = t.split('*');
         if(ps[0] == 't' || ps[0] == 'time') {
             out.time = ps.length > 1 ? parseFloat(ps[1]) : 1;
+        } else if(ps[0] == 'tix') {
+            out.time = ps.length > 1 ? n.nrm * parseFloat(ps[1]) : n.nrm;
         } else {
             let trm = 1;
             for(let p of ps) {

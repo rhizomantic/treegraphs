@@ -27,110 +27,80 @@ var def0 = {
 var def = {
   "props": {
     "render": {
-      "type": "tree",
       "levels": [
         {
-          "type": "circles",
-          "size": 1.2,
-          "fill": "#666666",
-          "stroke": 0,
-          "weight": 1
-        },
-        {
-          "type": "circles",
-          "size": 1,
-          "fill": "#FFFFFF",
-          "stroke": 0,
-          "weight": 1
-        },
-        {
-          "stroke": 0,
-          "weight": 1.5,
-          "type": "tree",
-          "fill": "#888888",
-          "size": 1
-        },
-        {
-          "stroke": "#FFFFFF",
-          "weight": 1,
-          "type": "tree",
-          "fill": "#888888",
-          "size": 1
+          "type": "daisy",
+          "stroke": "#00000088",
+          "fill": "#00000033",
+          "weightMult": 0,
+          "weightAdd": 1
         }
       ]
     }
   },
   "net": [
     {
-      "num": 2,
+      "num": 4,
       "type": "fan",
-      "step": {
-        "min": 124.75,
-        "dif": 0,
-        "terms": "ix"
-      },
+      "mirror": true,
+      "size": 72,
+      "weight": 1,
+      "step": 300,
       "turn": {
-        "min": 1.57,
-        "dif": 6.28,
+        "min": 0,
+        "dif": 3.14,
         "terms": "ix"
-      },
-      "mirror": false,
-      "weight": 2,
-      "size": {
-        "min": 10,
-        "dif": 40,
-        "terms": "depth"
       },
       "children": [
         {
-          "num": 3,
+          "num": 6,
           "type": "fan",
+          "mirror": true,
+          "size": 36,
+          "weight": 1,
           "step": {
-            "min": 142.94,
-            "dif": 0,
-            "terms": "ix"
+            "min": 100,
+            "dif": 100,
+            "terms": "ix*2",
+            "ease": "hill",
+            "pow": 3
           },
           "turn": {
-            "min": 1.57,
-            "dif": 6.28,
-            "terms": "ix"
-          },
-          "mirror": false,
-          "weight": 2,
-          "size": {
-            "min": 10,
-            "dif": 40,
-            "terms": "depth"
+            "min": 0,
+            "dif": 3.14,
+            "var": 1.04,
+            "terms": "ix",
+            "pow": 2,
+            "dur": 200
           },
           "children": [
-            {
-              "num": 4,
+            /*{
+              "num": 24,
               "type": "fan",
+              "mirror": true,
+              "size": 6,
+              "weight": 1,
               "step": {
-                "min": 51.87,
-                "dif": 0,
-                "terms": "ix"
+                "min": 100,
+                "dif": 200,
+                "terms": "t*0.5+ix*0.5",
+                "ease": "hill",
+                "pow": 3,
+                "dur": 200
               },
               "turn": {
-                "min": 1.57,
-                "dif": 6.28,
+                "min": 0,
+                "dif": 4.85,
                 "terms": "ix"
               },
-              "mirror": false,
-              "weight": 2,
-              "size": {
-                "min": 10,
-                "dif": 40,
-                "terms": "depth"
-              },
               "children": []
-            }
+          }*/
           ]
         }
       ],
       "pos": [
         702.5,
-        503.5
+        479
       ]
     }
   ]
@@ -158,6 +128,8 @@ function setup() {
     let generate = select("#generate");
     generate.mouseClicked( function(){ reset(false) } );
 
+    //editor.hide();
+
     reset( false );
 
     console.log("setup");
@@ -169,7 +141,7 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = generateSimple();
+      _def = def;// generateSimple();
   }
   //tickers.clear();
   background("#FFFFFF");
@@ -207,6 +179,8 @@ function draw() {
       }
 
       t++;
+
+      //if(t == 200) reset();
   }
 }
 
@@ -320,12 +294,13 @@ class Node {
                 let ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
                 x += (1 / val.dur) * ti * val.time;
             }
-            if(x > 1) x %= 1;
-            //if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
-            //if(this.ix == 23 && prop == "step") console.log(x, floor(x%2));
+            //if(x > 1) x %= 1;
+            if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
+            //if(prop == "turn") console.log(this.ix, x);
 
 
             this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
+            //this[prop] = val.min + ease(val.ease, x, val.pow) * val.var * this.ix;
         }
 
         for(let k of this.kids) {

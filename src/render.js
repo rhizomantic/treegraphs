@@ -96,6 +96,8 @@ class RenderCurves {
             for(let k=0; k<n.kids.length; k++) {
                 let sz = n.kids[k].size * level.sizeMult + level.sizeAdd;
                 fill(level.fill == "node" ? n.kids[k].fill : level.fill);
+                stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
                 ellipse( n.kids[k].pos[0], n.kids[k].pos[1], sz, sz);
             }
         }  else if(level.type== "star") {
@@ -139,8 +141,24 @@ class RenderCurves {
                     ];
                     stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
                     strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
+                    fill(level.fill == "node" ? n.kids[k].fill : level.fill);
                     bezier(pts[0], pts[1], n.kids[k-1].pos[0], n.kids[k-1].pos[1], n.kids[k-1].pos[0], n.kids[k-1].pos[1], pts[2], pts[3]);
                     bezier(pts[0], pts[1], n.kids[k].pos[0], n.kids[k].pos[1], n.kids[k].pos[0], n.kids[k].pos[1], pts[2], pts[3]);
+
+                }
+            }
+        }  else if(level.type== "daisy") {
+            if(n.kids.length > 2) {
+                for(let k=1; k<n.kids.length-1; k++) {
+                    let pts = [
+                        n.kids[k].pos[0] + (n.kids[k-1].pos[0] - n.kids[k].pos[0]) / 2, n.kids[k].pos[1] + (n.kids[k-1].pos[1] - n.kids[k].pos[1]) / 2,
+                        n.kids[k].pos[0] + (n.kids[k+1].pos[0] - n.kids[k].pos[0]) / 2, n.kids[k].pos[1] + (n.kids[k+1].pos[1] - n.kids[k].pos[1]) / 2
+                    ];
+                    stroke(level.stroke == "node" ? n.kids[k].stroke : level.stroke);
+                    strokeWeight( n.kids[k].weight * level.weightMult + level.weightAdd );
+                    fill(level.fill == "node" ? n.kids[k].fill : level.fill);
+                    bezier(n.pos[0], n.pos[1], pts[0], pts[1], pts[0], pts[1], n.kids[k].pos[0], n.kids[k].pos[1]);
+                    bezier(n.pos[0], n.pos[1], pts[2], pts[3], pts[2], pts[3], n.kids[k].pos[0], n.kids[k].pos[1]);
 
                 }
             }

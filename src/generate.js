@@ -57,8 +57,8 @@ function generateSimple() {
     let def = {
     props:{
         render: { levels: [
-            {type:"tree", stroke: '#999999', weightMult:0, weightAdd:1 },
-            {type:"circles", fill: '#00000088'}
+            {type:"petals", stroke: '#00000000', fill: '#00000033', weightMult:0, weightAdd:1 },
+            //{type:"circles", stroke: '#00000088', fill: '#00000011'}
         ] }
     },
     net:[
@@ -66,7 +66,7 @@ function generateSimple() {
                 num:2,
                 type:"fan",
                 mirror:true,
-                size: 36,
+                size: 72,
                 weight: 1,
                 step: 30,
                 turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
@@ -75,10 +75,10 @@ function generateSimple() {
                         num:6,
                         type:"fan",
                         mirror:true,
-                        size: 18,
+                        size: 36,
                         weight: 1,
-                        step:{ min:random(50, 300), dif:0, terms:"ix*2", ease:"hill", pow:3 },
-                        turn:{ min:0, dif:random(1, TWO_PI), terms:"ix" },
+                        step:{ min:100, dif:0, terms:"ix*2", ease:"hill", pow:3 },
+                        turn:{ min:0, var:TWO_PI/6, terms:"t", pow:2, dur:200 },
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
                             {
@@ -87,7 +87,7 @@ function generateSimple() {
                                 mirror:true,
                                 size: 6,
                                 weight: 1,
-                                step:{ min:random(50, 300), dif:200, terms:"t*0.5+ix*0.5", ease:"noise", pow:3, dur:200 },
+                                step:{ min:100, dif:200, terms:"t*0.5+ix*0.5", ease:"hill", pow:3, dur:200 },
                                 turn:{ min:0, dif:random(1, TWO_PI), terms:"ix" },
                                 //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                                 children:[
