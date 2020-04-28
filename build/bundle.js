@@ -6,6 +6,7 @@ var go = true;
 var render;
 var canvas, editor, area;
 var tweenable = ["step", "turn", "size", "weight"];
+var backCol = "#000000";
 
 // pi/2 = 1.5707
 // pi/3 = 1.047
@@ -29,7 +30,7 @@ var def = {
     "render": {
       "levels": [
         {
-          "type": "daisy",
+          "type": "tree",
           "stroke": "#00000088",
           "fill": "#00000033",
           "weightMult": 0,
@@ -53,17 +54,18 @@ var def = {
       },
       "children": [
         {
-          "num": 6,
+          "num": 12,
           "type": "fan",
           "mirror": true,
           "size": 36,
           "weight": 1,
           "step": {
-            "min": 100,
-            "dif": 100,
-            "terms": "ix*2",
-            "ease": "hill",
-            "pow": 3
+            "min": 30,
+            "dif": 150,
+            "terms": "tix",
+            "ease": "none",
+            "pow": 3,
+            "dur": 200
           },
           "turn": {
             "min": 0,
@@ -109,9 +111,9 @@ var def = {
 
 
 function setup() {
-    canvas = createCanvas(windowWidth, windowHeight);
+    canvas = createCanvas(1080, 1080);//(windowWidth, windowHeight);
     canvas.parent('container');
-    background("#FFFFFF");
+    background(backCol);
     //frameRate(30);
     stroke(0, 128);
     strokeWeight(3);
@@ -128,7 +130,7 @@ function setup() {
     let generate = select("#generate");
     generate.mouseClicked( function(){ reset(false) } );
 
-    //editor.hide();
+    editor.hide();
 
     reset( false );
 
@@ -141,10 +143,10 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = def;// generateSimple();
+      _def = generateSimple();
   }
   //tickers.clear();
-  background("#FFFFFF");
+  background(backCol);
   t = 0;
   seed = int(random(999999));
   randomSeed(seed);
@@ -170,11 +172,10 @@ function replacer(key, val) {
 
 function draw() {
   if(go) {
-      background("#FFFFFF");
+      background(backCol);
       for(let g of graphs) {
           g.root.update();
           moveNode(g.root);
-          //drawNode(g.root);
           render.render(g.root);
       }
 
@@ -236,7 +237,7 @@ class Graph {
     this.count = 0;
     this.depth = 0;
 
-    this.root = new Node();
+    this.root = new Node( {pos: args.net[0].pos} );
     for(let i=0; i<args.net.length; i++){
         makeGroup(args.net[i], this.root, this);
     }
@@ -290,9 +291,9 @@ class Node {
         for(let [prop, val] of Object.entries(this.curves)) {
             let x = val.base;
             //if(val.dur > 0) x += (1 / val.dur) * (t % (val.dur+1)) * val.time;
-            if(val.dur > 0) { // come and go
+            if(val.dur > 0 && val.time > 0) { // come and go
                 let ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
-                x += (1 / val.dur) * ti * val.time;
+                x += (1 / val.dur) * ti + val.time;
             }
             //if(x > 1) x %= 1;
             if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
@@ -331,6 +332,10 @@ function ease(type, x, p) {
 
 }
 
+function pick(...opts) {
+    return opts[floor(random(opts.length))];
+}
+
 
 function mousePressed() {
   //pen.set(mouseX, mouseY);
@@ -346,8 +351,8 @@ function keyTyped() {
         reset(false);
     } else if (key === 's') {
         let gt = getTime();
-        saveCanvas("collider-" + gt + ".jpg");
-        saveJSON(defs, "collider-" + gt + ".jpg", false);
+        saveCanvas("TG-" + gt + ".jpg");
+        //saveJSON(defs, "TG-" + gt + ".jpg", false);
     } else if (key === 'g') {
         generate();
     } else if (key === 'e') {
@@ -372,11 +377,11 @@ function getTime() {
         (now.getSeconds()).toString().padStart(2, "0");
 }
 
-function windowResized() {
+/*function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   canvas.parent('container');
   background("#FFFFFF");
-}
+}*/
 
 function generateWithBudget() {
     let budget = 200;
@@ -433,42 +438,56 @@ function generateWithBudget() {
 
 function generateSimple() {
     let a1 = random(0.1, PI/2);//PI/2;
-
+    let baseNum = int(random(4,8));
     let def = {
     props:{
         render: { levels: [
-            {type:"petals", stroke: '#00000000', fill: '#00000033', weightMult:0, weightAdd:1 },
+            {type:"daisy", stroke: '#FFFFFFCC', fill: '#000000FF', weightMult:0, weightAdd:2 },
             //{type:"circles", stroke: '#00000088', fill: '#00000011'}
         ] }
     },
     net:[
             {
-                num:2,
+                num:baseNum,
                 type:"fan",
                 mirror:true,
                 size: 72,
-                weight: 1,
-                step: 30,
-                turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
+                weight: 0,
+                step: 120,
+                //turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
+                turn:{ min:0, dif:TWO_PI, terms:"ix" },
                 children:[
                     {
-                        num:6,
+                        num:baseNum,
                         type:"fan",
-                        mirror:true,
+                        mirror:baseNum%2 == 0 ? random(1) < 0.5 : false,
                         size: 36,
-                        weight: 1,
-                        step:{ min:100, dif:0, terms:"ix*2", ease:"hill", pow:3 },
-                        turn:{ min:0, var:TWO_PI/6, terms:"t", pow:2, dur:200 },
+                        weight: 8,
+                        step:{ min:180, dif:0, terms:"ix", ease:"none", pow:1 },
+                        turn:{ min:0, dif:random(2, TWO_PI), terms:"ix", ease:"none", pow:2 },
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
                             {
-                                num:24,
+                                num:int(32/baseNum),
                                 type:"fan",
-                                mirror:true,
+                                mirror:false,
                                 size: 6,
-                                weight: 1,
-                                step:{ min:100, dif:200, terms:"t*0.5+ix*0.5", ease:"hill", pow:3, dur:200 },
-                                turn:{ min:0, dif:random(1, TWO_PI), terms:"ix" },
+                                weight: 4,
+                                step:{ min:60, dif:180, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
+                                //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                                children:[
+
+                                ]
+                            },
+                            {
+                                num:int(16/baseNum),
+                                type:"fan",
+                                mirror:false,
+                                size: 6,
+                                weight: 4,
+                                step:{ min:60, dif:0, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
                                 //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                                 children:[
 
@@ -483,7 +502,8 @@ function generateSimple() {
 
     console.log("GEN", a1, PI/2+a1, -a1*4 );
 
-    def.net[0].pos = [windowWidth/2, windowHeight/2];
+    def.net[0].pos = [width/2, height/2];
+    console.log(width, height);
     return def;
 
 }

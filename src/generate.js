@@ -53,42 +53,56 @@ function generateWithBudget() {
 
 function generateSimple() {
     let a1 = random(0.1, PI/2);//PI/2;
-
+    let baseNum = int(random(4,8));
     let def = {
     props:{
         render: { levels: [
-            {type:"petals", stroke: '#00000000', fill: '#00000033', weightMult:0, weightAdd:1 },
+            {type:"daisy", stroke: '#FFFFFFCC', fill: '#000000FF', weightMult:0, weightAdd:2 },
             //{type:"circles", stroke: '#00000088', fill: '#00000011'}
         ] }
     },
     net:[
             {
-                num:2,
+                num:baseNum,
                 type:"fan",
                 mirror:true,
                 size: 72,
-                weight: 1,
-                step: 30,
-                turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
+                weight: 0,
+                step: 120,
+                //turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
+                turn:{ min:0, dif:TWO_PI, terms:"ix" },
                 children:[
                     {
-                        num:6,
+                        num:baseNum,
                         type:"fan",
-                        mirror:true,
+                        mirror:baseNum%2 == 0 ? random(1) < 0.5 : false,
                         size: 36,
-                        weight: 1,
-                        step:{ min:100, dif:0, terms:"ix*2", ease:"hill", pow:3 },
-                        turn:{ min:0, var:TWO_PI/6, terms:"t", pow:2, dur:200 },
+                        weight: 8,
+                        step:{ min:180, dif:0, terms:"ix", ease:"none", pow:1 },
+                        turn:{ min:0, dif:random(2, TWO_PI), terms:"ix", ease:"none", pow:2 },
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
                             {
-                                num:24,
+                                num:int(32/baseNum),
                                 type:"fan",
-                                mirror:true,
+                                mirror:false,
                                 size: 6,
-                                weight: 1,
-                                step:{ min:100, dif:200, terms:"t*0.5+ix*0.5", ease:"hill", pow:3, dur:200 },
-                                turn:{ min:0, dif:random(1, TWO_PI), terms:"ix" },
+                                weight: 4,
+                                step:{ min:60, dif:180, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
+                                //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                                children:[
+
+                                ]
+                            },
+                            {
+                                num:int(16/baseNum),
+                                type:"fan",
+                                mirror:false,
+                                size: 6,
+                                weight: 4,
+                                step:{ min:60, dif:0, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
                                 //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                                 children:[
 
@@ -103,7 +117,8 @@ function generateSimple() {
 
     console.log("GEN", a1, PI/2+a1, -a1*4 );
 
-    def.net[0].pos = [windowWidth/2, windowHeight/2];
+    def.net[0].pos = [width/2, height/2];
+    console.log(width, height);
     return def;
 
 }

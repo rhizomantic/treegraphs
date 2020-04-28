@@ -6,6 +6,7 @@ var go = true;
 var render;
 var canvas, editor, area;
 var tweenable = ["step", "turn", "size", "weight"];
+var backCol = "#000000";
 
 // pi/2 = 1.5707
 // pi/3 = 1.047
@@ -29,7 +30,7 @@ var def = {
     "render": {
       "levels": [
         {
-          "type": "daisy",
+          "type": "tree",
           "stroke": "#00000088",
           "fill": "#00000033",
           "weightMult": 0,
@@ -53,17 +54,18 @@ var def = {
       },
       "children": [
         {
-          "num": 6,
+          "num": 12,
           "type": "fan",
           "mirror": true,
           "size": 36,
           "weight": 1,
           "step": {
-            "min": 100,
-            "dif": 100,
-            "terms": "ix*2",
-            "ease": "hill",
-            "pow": 3
+            "min": 30,
+            "dif": 150,
+            "terms": "tix",
+            "ease": "none",
+            "pow": 3,
+            "dur": 200
           },
           "turn": {
             "min": 0,
@@ -109,9 +111,9 @@ var def = {
 
 
 function setup() {
-    canvas = createCanvas(windowWidth, windowHeight);
+    canvas = createCanvas(1080, 1080);//(windowWidth, windowHeight);
     canvas.parent('container');
-    background("#FFFFFF");
+    background(backCol);
     //frameRate(30);
     stroke(0, 128);
     strokeWeight(3);
@@ -128,7 +130,7 @@ function setup() {
     let generate = select("#generate");
     generate.mouseClicked( function(){ reset(false) } );
 
-    //editor.hide();
+    editor.hide();
 
     reset( false );
 
@@ -141,10 +143,10 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = def;// generateSimple();
+      _def = generateSimple();
   }
   //tickers.clear();
-  background("#FFFFFF");
+  background(backCol);
   t = 0;
   seed = int(random(999999));
   randomSeed(seed);
@@ -170,11 +172,10 @@ function replacer(key, val) {
 
 function draw() {
   if(go) {
-      background("#FFFFFF");
+      background(backCol);
       for(let g of graphs) {
           g.root.update();
           moveNode(g.root);
-          //drawNode(g.root);
           render.render(g.root);
       }
 
@@ -236,7 +237,7 @@ class Graph {
     this.count = 0;
     this.depth = 0;
 
-    this.root = new Node();
+    this.root = new Node( {pos: args.net[0].pos} );
     for(let i=0; i<args.net.length; i++){
         makeGroup(args.net[i], this.root, this);
     }
@@ -290,9 +291,9 @@ class Node {
         for(let [prop, val] of Object.entries(this.curves)) {
             let x = val.base;
             //if(val.dur > 0) x += (1 / val.dur) * (t % (val.dur+1)) * val.time;
-            if(val.dur > 0) { // come and go
+            if(val.dur > 0 && val.time > 0) { // come and go
                 let ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
-                x += (1 / val.dur) * ti * val.time;
+                x += (1 / val.dur) * ti + val.time;
             }
             //if(x > 1) x %= 1;
             if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
@@ -331,6 +332,10 @@ function ease(type, x, p) {
 
 }
 
+function pick(...opts) {
+    return opts[floor(random(opts.length))];
+}
+
 
 function mousePressed() {
   //pen.set(mouseX, mouseY);
@@ -346,8 +351,8 @@ function keyTyped() {
         reset(false);
     } else if (key === 's') {
         let gt = getTime();
-        saveCanvas("collider-" + gt + ".jpg");
-        saveJSON(defs, "collider-" + gt + ".jpg", false);
+        saveCanvas("TG-" + gt + ".jpg");
+        //saveJSON(defs, "TG-" + gt + ".jpg", false);
     } else if (key === 'g') {
         generate();
     } else if (key === 'e') {
@@ -372,8 +377,8 @@ function getTime() {
         (now.getSeconds()).toString().padStart(2, "0");
 }
 
-function windowResized() {
+/*function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   canvas.parent('container');
   background("#FFFFFF");
-}
+}*/
