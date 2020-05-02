@@ -53,12 +53,12 @@ function generateWithBudget() {
 
 function generateSimple() {
     let a1 = random(0.1, PI/2);//PI/2;
-    let baseNum = int(random(4,8));
+    let baseNum = int(random(2,6));
     let def = {
     props:{
         render: { levels: [
-            {type:"daisy", stroke: '#FFFFFFCC', fill: '#000000FF', weightMult:0, weightAdd:2 },
-            //{type:"circles", stroke: '#00000088', fill: '#00000011'}
+            {type:"petals", close:true, stroke: '#FFFFFFCC', fill: '#33333388', weightMult:0, weightAdd:2 },
+            {type:"circles", stroke: '#FFFFFF88', fill: '#66666688'}
         ] }
     },
     net:[
@@ -83,7 +83,7 @@ function generateSimple() {
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
                             {
-                                num:int(32/baseNum),
+                                num:int(24/baseNum),
                                 type:"fan",
                                 mirror:false,
                                 size: 6,
@@ -96,7 +96,7 @@ function generateSimple() {
                                 ]
                             },
                             {
-                                num:int(16/baseNum),
+                                num:int(18/baseNum),
                                 type:"fan",
                                 mirror:false,
                                 size: 6,

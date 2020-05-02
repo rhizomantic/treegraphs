@@ -187,12 +187,14 @@ function draw() {
 
 function makeGroup(g, dad, graph) {
     //console.log("makeGroup", g);
+    let group = [];
     for(let i=0; i<g.num; i++) {
         let n = new Node();
+        group.push(n);
         n.ix = i;
         n.nrm = g.num == 1 ? 0 : (1 / (g.num)) * i;
         n.parent = dad;
-        n.parent.kids.push(n);
+        //n.parent.kids.push(n);
         n.depth = dad.depth+1;
         n.graph = graph;
 
@@ -201,7 +203,7 @@ function makeGroup(g, dad, graph) {
         //console.log(n);
 
         if(g.type == "chain" && i > 0) {
-            n.anchor = dad.kids[i-1];
+            n.anchor = group[i-1];// dad.kids[i-1];
         } else {
             n.anchor = dad;
         }
@@ -226,6 +228,8 @@ function makeGroup(g, dad, graph) {
             }
         }
     }
+
+    dad.groups.push(group);
 
 }
 
@@ -269,7 +273,8 @@ class Node {
         this.graph = args.graph || null;
         this.parent = args.parent || null;
         this.anchor = args.anchor || null;
-        this.kids = args.kids || [];
+        //this.kids = args.kids || [];
+        this.groups = args.groups || [];
 
         this.curves = {};
 
@@ -282,8 +287,13 @@ class Node {
             }
         }
 
-        for(let k of this.kids) {
+        /*for(let k of this.kids) {
             k.init();
+        }*/
+        for(let g of this.groups) {
+            for(let k of g) {
+                k.init();
+            }
         }
     }
 
@@ -304,8 +314,13 @@ class Node {
             //this[prop] = val.min + ease(val.ease, x, val.pow) * val.var * this.ix;
         }
 
-        for(let k of this.kids) {
+        /*for(let k of this.kids) {
             k.update();
+        }*/
+        for(let g of this.groups) {
+            for(let k of g) {
+                k.update();
+            }
         }
     }
 }

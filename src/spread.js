@@ -58,8 +58,13 @@ function moveNode(n) {
         //if(t == 5) console.log(n.depth, n.ix, n.step, n.rot);
     }
 
-    for(let k of n.kids) {
+    /*for(let k of n.kids) {
         moveNode(k);
+    }*/
+    for(let g of n.groups) {
+        for(let k of g) {
+            moveNode(k);
+        }
     }
 }
 
