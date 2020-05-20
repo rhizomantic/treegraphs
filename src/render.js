@@ -263,7 +263,61 @@ class RenderCurves {
                     }
                 }
             }
+        } else if(level.type== "cousins") {
+            if(n.depth > 1){
+                for(let g of n.groups) {
+                    for(let k=0; k<g.length; k++) {
+                        let siblings = n.parent.groups[n.gix];
+                        //console.log(siblings);
+                        let bro = siblings[(n.ix+1)%siblings.length];
+                        let cou = bro.groups[g[k].gix][g[k].ix];
+
+                        stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
+                        strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
+                        //line(g[k].pos[0], g[k].pos[1], cou.pos[0], cou.pos[1]);
+                        //bezier(g[k].pos[0], g[k].pos[1], g[k].anchor.pos[0], g[k].anchor.pos[1], cou.anchor.pos[0], cou.anchor.pos[1], cou.pos[0], cou.pos[1]);
+                        bezier(g[k].anchor.pos[0], g[k].anchor.pos[1], g[k].pos[0], g[k].pos[1], cou.pos[0], cou.pos[1], cou.anchor.pos[0], cou.anchor.pos[1]);
+
+                    }
+                }
+            }
+        } else if(level.type== "squares") {
+            for(let g of n.groups) {
+                for(let k=0; k<g.length; k++) {
+                    let sz = g[k].size * level.sizeMult + level.sizeAdd;
+                    let cs = cos(g[k].rot), sn = sin(g[k].rot);
+                    let pts = [
+                        g[k].pos[0]+sz*cs, g[k].pos[1]+sz*sn,
+                        g[k].pos[0]-sz*sn, g[k].pos[1]+sz*cs,
+                        g[k].pos[0]-sz*cs, g[k].pos[1]-sz*sn,
+                        g[k].pos[0]+sz*sn, g[k].pos[1]-sz*cs
+
+
+                    ]
+                    fill(level.fill == "node" ? g[k].fill : level.fill);
+                    stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
+                    strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
+                    beginShape();
+                    //vertex(g[k].pos[0], g[k].pos[1]);
+                    vertex(pts[0], pts[1]);
+                    vertex(pts[2], pts[3]);
+                    vertex(pts[4], pts[5]);
+                    vertex(pts[6], pts[7]);
+                    vertex(pts[0], pts[1]);
+                    endShape();
+                }
+            }
+        } else if(level.type== "debug") {
+            for(let g of n.groups) {
+                for(let k=0; k<g.length; k++) {
+                    fill(level.fill == "node" ? g[k].fill : level.fill);
+                    text("ix"+g[k].ix+" gid"+g[k].gix, g[k].pos[0], g[k].pos[1]);
+
+                }
+            }
+
         }
+
 
 
         /*for(let k of n.kids) {

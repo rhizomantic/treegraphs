@@ -185,13 +185,14 @@ function draw() {
   }
 }
 
-function makeGroup(g, dad, graph) {
+function makeGroup(gix, g, dad, graph) {
     //console.log("makeGroup", g);
     let group = [];
     for(let i=0; i<g.num; i++) {
         let n = new Node();
         group.push(n);
         n.ix = i;
+        n.gix = gix;
         n.nrm = g.num == 1 ? 0 : (1 / (g.num)) * i;
         n.parent = dad;
         //n.parent.kids.push(n);
@@ -224,7 +225,7 @@ function makeGroup(g, dad, graph) {
 
         if(g.children) {
             for(let j=0; j<g.children.length; j++) {
-                makeGroup(g.children[j], n, graph);
+                makeGroup(j, g.children[j], n, graph);
             }
         }
     }
@@ -243,7 +244,7 @@ class Graph {
 
     this.root = new Node( {pos: args.net[0].pos} );
     for(let i=0; i<args.net.length; i++){
-        makeGroup(args.net[i], this.root, this);
+        makeGroup(i, args.net[i], this.root, this);
     }
     this.root.init();
 
@@ -256,6 +257,7 @@ class Node {
     constructor(args = {}) {
         //properties
         this.ix = args.ix || 0;
+        this.gix = args.gix || 0;
         this.nrm = args.nrm || 0;
         this.rnd = args.rnd || Math.random();
         this.pos = args.pos || [windowWidth / 2, windowHeight / 2];

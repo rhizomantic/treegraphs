@@ -185,13 +185,14 @@ function draw() {
   }
 }
 
-function makeGroup(g, dad, graph) {
+function makeGroup(gix, g, dad, graph) {
     //console.log("makeGroup", g);
     let group = [];
     for(let i=0; i<g.num; i++) {
         let n = new Node();
         group.push(n);
         n.ix = i;
+        n.gix = gix;
         n.nrm = g.num == 1 ? 0 : (1 / (g.num)) * i;
         n.parent = dad;
         //n.parent.kids.push(n);
@@ -224,7 +225,7 @@ function makeGroup(g, dad, graph) {
 
         if(g.children) {
             for(let j=0; j<g.children.length; j++) {
-                makeGroup(g.children[j], n, graph);
+                makeGroup(j, g.children[j], n, graph);
             }
         }
     }
@@ -243,7 +244,7 @@ class Graph {
 
     this.root = new Node( {pos: args.net[0].pos} );
     for(let i=0; i<args.net.length; i++){
-        makeGroup(args.net[i], this.root, this);
+        makeGroup(i, args.net[i], this.root, this);
     }
     this.root.init();
 
@@ -256,6 +257,7 @@ class Node {
     constructor(args = {}) {
         //properties
         this.ix = args.ix || 0;
+        this.gix = args.gix || 0;
         this.nrm = args.nrm || 0;
         this.rnd = args.rnd || Math.random();
         this.pos = args.pos || [windowWidth / 2, windowHeight / 2];
@@ -457,7 +459,7 @@ function generateSimple() {
     let def = {
     props:{
         render: { levels: [
-            {type:"petals", close:true, stroke: '#FFFFFFCC', fill: '#33333388', weightMult:0, weightAdd:2 },
+            {type:"squares", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
             {type:"circles", stroke: '#FFFFFF88', fill: '#66666688'}
         ] }
     },
@@ -486,7 +488,7 @@ function generateSimple() {
                                 num:int(24/baseNum),
                                 type:"fan",
                                 mirror:false,
-                                size: 6,
+                                size: 26,
                                 weight: 4,
                                 step:{ min:60, dif:180, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
                                 turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
@@ -499,7 +501,7 @@ function generateSimple() {
                                 num:int(18/baseNum),
                                 type:"fan",
                                 mirror:false,
-                                size: 6,
+                                size: 16,
                                 weight: 4,
                                 step:{ min:60, dif:0, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
                                 turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
@@ -856,6 +858,29 @@ class RenderCurves {
                     }
                 }
             }
+        }  else if(level.type== "square-chain") {
+            for(let g of n.groups) {
+                if(g.length > 2) {
+                    for(let k=(level.close?0:1); k<g.length; k++) {
+                        let prv = g[k==0 ? g.length-1 : k-1];
+                        let hlf = [ (prv.pos[0] - g[k].pos[0]) / 2, (prv.pos[1] - g[k].pos[1]) / 2 ];
+                        let pts = [
+                            (g[k].pos[0] + hlf[0]) - hlf[1], (g[k].pos[1] + hlf[1]) + hlf[0],
+                            (g[k].pos[0] + hlf[0]) + hlf[1], (g[k].pos[1] + hlf[1]) - hlf[0]
+                        ];
+                        stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
+                        strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
+                        fill(level.fill == "node" ? g[k].fill : level.fill);
+                        beginShape();
+                        vertex(g[k].pos[0], g[k].pos[1]);
+                        vertex(pts[0], pts[1]);
+                        vertex(prv.pos[0], prv.pos[1]);
+                        vertex(pts[2], pts[3]);
+                        vertex(g[k].pos[0], g[k].pos[1]);
+                        endShape();
+                    }
+                }
+            }
         }  else if(level.type== "daisy") {
             for(let g of n.groups) {
                 if(g.length > 2) {
@@ -875,7 +900,61 @@ class RenderCurves {
                     }
                 }
             }
+        } else if(level.type== "cousins") {
+            if(n.depth > 1){
+                for(let g of n.groups) {
+                    for(let k=0; k<g.length; k++) {
+                        let siblings = n.parent.groups[n.gix];
+                        //console.log(siblings);
+                        let bro = siblings[(n.ix+1)%siblings.length];
+                        let cou = bro.groups[g[k].gix][g[k].ix];
+
+                        stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
+                        strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
+                        //line(g[k].pos[0], g[k].pos[1], cou.pos[0], cou.pos[1]);
+                        //bezier(g[k].pos[0], g[k].pos[1], g[k].anchor.pos[0], g[k].anchor.pos[1], cou.anchor.pos[0], cou.anchor.pos[1], cou.pos[0], cou.pos[1]);
+                        bezier(g[k].anchor.pos[0], g[k].anchor.pos[1], g[k].pos[0], g[k].pos[1], cou.pos[0], cou.pos[1], cou.anchor.pos[0], cou.anchor.pos[1]);
+
+                    }
+                }
+            }
+        } else if(level.type== "squares") {
+            for(let g of n.groups) {
+                for(let k=0; k<g.length; k++) {
+                    let sz = g[k].size * level.sizeMult + level.sizeAdd;
+                    let cs = cos(g[k].rot), sn = sin(g[k].rot);
+                    let pts = [
+                        g[k].pos[0]+sz*cs, g[k].pos[1]+sz*sn,
+                        g[k].pos[0]-sz*sn, g[k].pos[1]+sz*cs,
+                        g[k].pos[0]-sz*cs, g[k].pos[1]-sz*sn,
+                        g[k].pos[0]+sz*sn, g[k].pos[1]-sz*cs
+
+
+                    ]
+                    fill(level.fill == "node" ? g[k].fill : level.fill);
+                    stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
+                    strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
+                    beginShape();
+                    vertex(g[k].pos[0], g[k].pos[1]);
+                    vertex(pts[0], pts[1]);
+                    vertex(pts[2], pts[3]);
+                    vertex(pts[4], pts[5]);
+                    vertex(pts[6], pts[7]);
+                    vertex(pts[0], pts[1]);
+                    endShape();
+                }
+            }
+        } else if(level.type== "debug") {
+            for(let g of n.groups) {
+                for(let k=0; k<g.length; k++) {
+                    fill(level.fill == "node" ? g[k].fill : level.fill);
+                    text("ix"+g[k].ix+" gid"+g[k].gix, g[k].pos[0], g[k].pos[1]);
+
+                }
+            }
+
         }
+
 
 
         /*for(let k of n.kids) {
