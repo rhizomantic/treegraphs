@@ -1,4 +1,4 @@
-function parseCurve(c, n) {
+/*function parseCurve(c, n) {
     c.terms = c.terms || "ix";
 
     let out = {};
@@ -40,7 +40,7 @@ function parseCurve(c, n) {
     //console.log("curve", n.graph.depth, n.depth, (n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth) );
 
     return out;
-}
+}*/
 
 function moveNode(n) {
     if(n.anchor !== null) {

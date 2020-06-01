@@ -57,7 +57,7 @@ function generateSimple() {
     let def = {
     props:{
         render: { levels: [
-            {type:"squares", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
             {type:"circles", stroke: '#FFFFFF88', fill: '#66666688'}
         ] }
     },
@@ -88,7 +88,7 @@ function generateSimple() {
                                 mirror:false,
                                 size: 26,
                                 weight: 4,
-                                step:{ min:60, dif:180, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:2000, noiseRad:1, noiseZ:"dix"},
                                 turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
                                 //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                                 children:[

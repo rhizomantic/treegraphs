@@ -235,6 +235,55 @@ function makeGroup(gix, g, dad, graph) {
 }
 
 
+
+
+
+function mousePressed() {
+  //pen.set(mouseX, mouseY);
+}
+
+function keyTyped() {
+    if (document.activeElement === document.getElementById('editor-area')) return;
+
+    if (key === ' ') {
+        go = !go;
+        console.log("go", go);
+    } else if (key === 'r') {
+        reset(false);
+    } else if (key === 's') {
+        let gt = getTime();
+        saveCanvas("TG-" + gt + ".jpg");
+        //saveJSON(defs, "TG-" + gt + ".jpg", false);
+    } else if (key === 'g') {
+        generate();
+    } else if (key === 'e') {
+        if (editor.style("display") == "block") editor.hide();
+        else editor.show();
+    }
+    // uncomment to prevent any default behavior
+    //return false;
+}
+
+function contrast(n, f) {
+  return constrain(f*(n-0.5) + 0.5, 0, 1);
+}
+
+function getTime() {
+  let now = new Date();
+  return now.getFullYear().toString().substring(2,4) +
+        (now.getMonth() + 1).toString().padStart(2, "0") +
+        (now.getDate()).toString().padStart(2, "0") + "-" +
+        (now.getHours()).toString().padStart(2, "0") +
+        (now.getMinutes()).toString().padStart(2, "0") +
+        (now.getSeconds()).toString().padStart(2, "0");
+}
+
+/*function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  canvas.parent('container');
+  background("#FFFFFF");
+}*/
+
 /***** GRAPH *****/
 class Graph {
   constructor(args = {}) {
@@ -285,13 +334,11 @@ class Node {
     init() {
         for (let tw of tweenable) {
             if (isNaN(this[tw])) {
-                this.curves[tw] = parseCurve(this[tw], this);
+                this.curves[tw] = this.parseCurve(this[tw]);
             }
         }
 
-        /*for(let k of this.kids) {
-            k.init();
-        }*/
+
         for(let g of this.groups) {
             for(let k of g) {
                 k.init();
@@ -299,26 +346,89 @@ class Node {
         }
     }
 
+    parseCurve(c) {
+        c.terms = c.terms || "ix";
+
+        let out = {};
+        out.ease = c.ease || "none";
+        out.pow = c.pow || 2;
+        out.min = c.min || 0;
+        //out.max = c.max || 1;
+        out.dif = c.dif || 0;
+        //out.var = c.var || c.dif / n.parent.kids.length;
+        out.dur = c.dur || 0;
+        out.bounce = c.hasOwnProperty("bounce") ? c.bounce : false;
+
+        if(out.ease == "noise") {
+            out.noiseRad = c.noiseRad || 6;
+            out.noiseZ = 'noiseZ' in c ? this.readTerm(c.noiseZ) : 1;
+        }
+
+        out.base = 0;
+        out.time = 0;
+
+        let ts = c.terms.split('+')
+        for(let t of ts) {
+            let ps = t.split('*');
+            if(ps[0] == 't' || ps[0] == 'time') {
+                out.time = ps.length > 1 ? parseFloat(ps[1]) : 1;
+            } else if(ps[0] == 'tix') {
+                out.time = ps.length > 1 ? this.nrm * parseFloat(ps[1]) : this.nrm;
+            } else {
+                /*let trm = 1;
+                for(let p of ps) {
+                    trm *= this.readTerm(p);
+                }
+                out.base += trm;*/
+                out.base += this.readTerm(t);
+            }
+        }
+        //console.log("curve", n.graph.depth, n.depth, (n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth) );
+
+        return out;
+    }
+
+    readTerm(term) {
+        let ps = term.split('*');
+        let o = 1;
+        for(let p of ps) {
+            if(p == "ix") o *= this.nrm;
+            else if(p == "rnd") o *= this.rnd;
+            else if(p == "dix") o *= this.parent.nrm;
+            else if(p == "drnd") o *= this.parent.rnd;
+            else if(p == "depth") o *= this.depth;
+            else if(p == "idepth") o *= this.graph.depth - this.depth;
+            else if(p == "depth-nrm") o *= 1/this.graph.depth * this.depth;
+            else if(p == "idepth-nrm") o *= 1 - 1/this.graph.depth * this.depth;
+            else o *= parseFloat(p);
+        }
+
+        return o;
+    }
+
     update() {
         for(let [prop, val] of Object.entries(this.curves)) {
             let x = val.base;
             //if(val.dur > 0) x += (1 / val.dur) * (t % (val.dur+1)) * val.time;
-            if(val.dur > 0 && val.time > 0) { // come and go
-                let ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
+            if(val.dur > 0 && val.time > 0) {
+                let ti;
+                if(val.bounce) ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
+                else ti = t % (val.dur+1);
                 x += (1 / val.dur) * ti + val.time;
+                //if(ti == 20) console.log(val.bounce);
             }
             //if(x > 1) x %= 1;
             if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
-            //if(prop == "turn") console.log(this.ix, x);
 
+            if(val.ease == "noise") {
+                this[prop] = val.min + noise(val.noiseRad*cos(TWO_PI*x), val.noiseRad*sin(TWO_PI*x), val.noiseZ ) * val.dif;
+            } else {
+                this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
+            }
 
-            this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
             //this[prop] = val.min + ease(val.ease, x, val.pow) * val.var * this.ix;
         }
 
-        /*for(let k of this.kids) {
-            k.update();
-        }*/
         for(let g of this.groups) {
             for(let k of g) {
                 k.update();
@@ -352,53 +462,6 @@ function ease(type, x, p) {
 function pick(...opts) {
     return opts[floor(random(opts.length))];
 }
-
-
-function mousePressed() {
-  //pen.set(mouseX, mouseY);
-}
-
-function keyTyped() {
-    if (document.activeElement === document.getElementById('editor-area')) return;
-
-    if (key === ' ') {
-        go = !go;
-        console.log("go", go);
-    } else if (key === 'r') {
-        reset(false);
-    } else if (key === 's') {
-        let gt = getTime();
-        saveCanvas("TG-" + gt + ".jpg");
-        //saveJSON(defs, "TG-" + gt + ".jpg", false);
-    } else if (key === 'g') {
-        generate();
-    } else if (key === 'e') {
-        if (editor.style("display") == "block") editor.hide();
-        else editor.show();
-    }
-    // uncomment to prevent any default behavior
-    //return false;
-}
-
-function contrast(n, f) {
-  return constrain(f*(n-0.5) + 0.5, 0, 1);
-}
-
-function getTime() {
-  let now = new Date();
-  return now.getFullYear().toString().substring(2,4) +
-        (now.getMonth() + 1).toString().padStart(2, "0") +
-        (now.getDate()).toString().padStart(2, "0") + "-" +
-        (now.getHours()).toString().padStart(2, "0") +
-        (now.getMinutes()).toString().padStart(2, "0") +
-        (now.getSeconds()).toString().padStart(2, "0");
-}
-
-/*function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  canvas.parent('container');
-  background("#FFFFFF");
-}*/
 
 function generateWithBudget() {
     let budget = 200;
@@ -459,7 +522,7 @@ function generateSimple() {
     let def = {
     props:{
         render: { levels: [
-            {type:"squares", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
             {type:"circles", stroke: '#FFFFFF88', fill: '#66666688'}
         ] }
     },
@@ -490,7 +553,7 @@ function generateSimple() {
                                 mirror:false,
                                 size: 26,
                                 weight: 4,
-                                step:{ min:60, dif:180, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:2000, noiseRad:1, noiseZ:"dix"},
                                 turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
                                 //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                                 children:[
@@ -525,7 +588,7 @@ function generateSimple() {
 
 }
 
-function parseCurve(c, n) {
+/*function parseCurve(c, n) {
     c.terms = c.terms || "ix";
 
     let out = {};
@@ -567,7 +630,7 @@ function parseCurve(c, n) {
     //console.log("curve", n.graph.depth, n.depth, (n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth) );
 
     return out;
-}
+}*/
 
 function moveNode(n) {
     if(n.anchor !== null) {
@@ -935,7 +998,7 @@ class RenderCurves {
                     stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
                     strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
                     beginShape();
-                    vertex(g[k].pos[0], g[k].pos[1]);
+                    //vertex(g[k].pos[0], g[k].pos[1]);
                     vertex(pts[0], pts[1]);
                     vertex(pts[2], pts[3]);
                     vertex(pts[4], pts[5]);
