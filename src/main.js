@@ -3,10 +3,13 @@ var t = 0;
 var seed;
 var density;
 var go = true;
+var capture = false;
+var captureTime = 0;
+var capturer;
 var render;
 var canvas, editor, area;
 var tweenable = ["step", "turn", "size", "weight"];
-var backCol = "#000000";
+var backCol = "#FFFFFF";
 
 // pi/2 = 1.5707
 // pi/3 = 1.047
@@ -114,7 +117,7 @@ function setup() {
     canvas = createCanvas(1080, 1080);//(windowWidth, windowHeight);
     canvas.parent('container');
     background(backCol);
-    //frameRate(30);
+    frameRate(30);
     stroke(0, 128);
     strokeWeight(3);
     //fill(0, 32);
@@ -159,6 +162,19 @@ function reset(fromEditor) {
 
   area.value( JSON.stringify(_def, replacer, 2) );
 
+  if('capture' in _def.props && _def.props.capture) {
+      captureTime = _def.props.captureTime || 0;
+      capture = true;
+      capturer = new CCapture( {
+          format: 'webm',
+          framerate:30,
+          name:"vid",
+          verbose: true,
+          display: true
+       } );
+      //capturer.start();
+  }
+
   render = new RenderCurves(_def);
 
 }
@@ -179,8 +195,21 @@ function draw() {
           render.render(g.root);
       }
 
-      t++;
+      if(capture) {
+          if(t == 0) capturer.start();
 
+          capturer.capture(document.getElementById('defaultCanvas0'));
+
+          if(t == captureTime) {
+              capture = false;
+              capturer.stop();
+              capturer.save();
+              capturer = null;
+          }
+      }
+
+      t++;
+      //console.log(capture, t);
       //if(t == 200) reset();
   }
 }
@@ -220,6 +249,7 @@ function makeGroup(gix, g, dad, graph) {
         n.weight = g.weight;
         n.fill = g.fill;
         n.stroke = g.stroke;
+        n.show = 'show' in g ? g.show : true;
 
         n.init();
 

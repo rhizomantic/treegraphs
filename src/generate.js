@@ -56,33 +56,36 @@ function generateSimple() {
     let baseNum = int(random(2,6));
     let def = {
     props:{
+        capture: false,
+        captureTime: 300,
         render: { levels: [
-            {type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
-            {type:"circles", stroke: '#FFFFFF88', fill: '#66666688'}
+            //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"tree", stroke: '#000000BB', fill: '#00000000'}
         ] }
     },
     net:[
             {
-                num:baseNum,
+                num: 90,
                 type:"fan",
                 mirror:true,
-                size: 72,
-                weight: 0,
-                step: 120,
+                size: 600,
+                weight: 1,
+                step: 10,
                 //turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
                 turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                show: true,
                 children:[
                     {
-                        num:baseNum,
-                        type:"fan",
-                        mirror:baseNum%2 == 0 ? random(1) < 0.5 : false,
+                        num:30,
+                        type:"chain",
                         size: 36,
-                        weight: 8,
-                        step:{ min:180, dif:0, terms:"ix", ease:"none", pow:1 },
-                        turn:{ min:0, dif:random(2, TWO_PI), terms:"ix", ease:"none", pow:2 },
+                        weight: 2,
+                        step: 20,
+                        turn: { min:0, dif:TWO_PI, terms:"t+ix", ease:"noise", pow:2, dur:300, noiseRad:1, noiseZ:1 },
+                        show: true,
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
-                            {
+                            /*{
                                 num:int(24/baseNum),
                                 type:"fan",
                                 mirror:false,
@@ -107,7 +110,7 @@ function generateSimple() {
                                 children:[
 
                                 ]
-                            }
+                            }*/
                         ]
                     }
                 ]

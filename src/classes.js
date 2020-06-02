@@ -33,6 +33,7 @@ class Node {
         this.depth = args.depth || 0;
         this.fill = args.fill || "#888888";
         this.stroke = args.stroke || 0;
+        this.show = 'show' in args ? args.show : true;
 
         // Node references
         this.graph = args.graph || null;
@@ -71,7 +72,7 @@ class Node {
         out.dif = c.dif || 0;
         //out.var = c.var || c.dif / n.parent.kids.length;
         out.dur = c.dur || 0;
-        out.bounce = c.hasOwnProperty("bounce") ? c.bounce : false;
+        out.bounce = 'bounce' in c ? c.bounce : true;
 
         if(out.ease == "noise") {
             out.noiseRad = c.noiseRad || 6;
@@ -103,6 +104,8 @@ class Node {
     }
 
     readTerm(term) {
+        if(! isNaN(term)) return term;
+
         let ps = term.split('*');
         let o = 1;
         for(let p of ps) {
@@ -128,14 +131,16 @@ class Node {
                 let ti;
                 if(val.bounce) ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
                 else ti = t % (val.dur+1);
-                x += (1 / val.dur) * ti + val.time;
+                x += (1 / val.dur) * ti * val.time;
                 //if(ti == 20) console.log(val.bounce);
             }
             //if(x > 1) x %= 1;
-            if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
+            if(x > 1) x = floor(x%2) == 1 && val.bounce ? 1 - (x%1) : x % 1;
 
             if(val.ease == "noise") {
-                this[prop] = val.min + noise(val.noiseRad*cos(TWO_PI*x), val.noiseRad*sin(TWO_PI*x), val.noiseZ ) * val.dif;
+                this[prop] = val.min + noise(8 + val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ ) * val.dif;
+                //this[prop] = val.min + noise(x*val.noiseRad, val.noiseZ ) * val.dif;
+                if(this.ix == 12 && this.parent.ix == 12) console.log(t, x, "h" );
             } else {
                 this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
             }
@@ -165,8 +170,6 @@ function ease(type, x, p) {
         return p < 0 ? 1 - Math.pow(1-x, Math.abs(p)) : Math.pow(x, Math.abs(p));
     } else if (type == "sine") {
         return Math.sin(x*p*Math.PI*2) * 0.5 + 0.5;
-    } else if (type == "noise") {
-        return noise(x*16);
     } else {
         return x;
     }

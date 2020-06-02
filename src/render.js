@@ -119,11 +119,29 @@ class RenderCurves {
         } else if(level.type== "circles") {
             for(let g of n.groups) {
                 for(let k=0; k<g.length; k++) {
+                    if(! g[k].show) continue;
                     let sz = g[k].size * level.sizeMult + level.sizeAdd;
                     fill(level.fill == "node" ? g[k].fill : level.fill);
                     stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
                     strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
                     ellipse( g[k].pos[0], g[k].pos[1], sz, sz);
+                }
+            }
+        } else if(level.type== "ripples") {
+            for(let g of n.groups) {
+                for(let k=0; k<g.length; k++) {
+                    if(! g[k].show) continue;
+                    let sz = g[k].size * level.sizeMult + level.sizeAdd;
+                    let wg = g[k].weight * level.weightMult + level.weightAdd ;
+                    if(wg <= 0) continue;
+                    fill(level.fill == "node" ? g[k].fill : level.fill);
+                    stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
+                    strokeWeight( wg );
+                    //ellipse( g[k].pos[0], g[k].pos[1], sz, sz);
+                    while(sz > 0) {
+                        ellipse( g[k].pos[0], g[k].pos[1], sz, sz);
+                        sz -= wg*4;
+                    }
                 }
             }
         }  else if(level.type== "star") {
@@ -284,6 +302,7 @@ class RenderCurves {
         } else if(level.type== "squares") {
             for(let g of n.groups) {
                 for(let k=0; k<g.length; k++) {
+                    if(! g[k].show) continue;
                     let sz = g[k].size * level.sizeMult + level.sizeAdd;
                     let cs = cos(g[k].rot), sn = sin(g[k].rot);
                     let pts = [

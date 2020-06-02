@@ -3,10 +3,13 @@ var t = 0;
 var seed;
 var density;
 var go = true;
+var capture = false;
+var captureTime = 0;
+var capturer;
 var render;
 var canvas, editor, area;
 var tweenable = ["step", "turn", "size", "weight"];
-var backCol = "#000000";
+var backCol = "#FFFFFF";
 
 // pi/2 = 1.5707
 // pi/3 = 1.047
@@ -114,7 +117,7 @@ function setup() {
     canvas = createCanvas(1080, 1080);//(windowWidth, windowHeight);
     canvas.parent('container');
     background(backCol);
-    //frameRate(30);
+    frameRate(30);
     stroke(0, 128);
     strokeWeight(3);
     //fill(0, 32);
@@ -159,6 +162,19 @@ function reset(fromEditor) {
 
   area.value( JSON.stringify(_def, replacer, 2) );
 
+  if('capture' in _def.props && _def.props.capture) {
+      captureTime = _def.props.captureTime || 0;
+      capture = true;
+      capturer = new CCapture( {
+          format: 'webm',
+          framerate:30,
+          name:"vid",
+          verbose: true,
+          display: true
+       } );
+      //capturer.start();
+  }
+
   render = new RenderCurves(_def);
 
 }
@@ -179,8 +195,21 @@ function draw() {
           render.render(g.root);
       }
 
-      t++;
+      if(capture) {
+          if(t == 0) capturer.start();
 
+          capturer.capture(document.getElementById('defaultCanvas0'));
+
+          if(t == captureTime) {
+              capture = false;
+              capturer.stop();
+              capturer.save();
+              capturer = null;
+          }
+      }
+
+      t++;
+      //console.log(capture, t);
       //if(t == 200) reset();
   }
 }
@@ -220,6 +249,7 @@ function makeGroup(gix, g, dad, graph) {
         n.weight = g.weight;
         n.fill = g.fill;
         n.stroke = g.stroke;
+        n.show = 'show' in g ? g.show : true;
 
         n.init();
 
@@ -319,6 +349,7 @@ class Node {
         this.depth = args.depth || 0;
         this.fill = args.fill || "#888888";
         this.stroke = args.stroke || 0;
+        this.show = 'show' in args ? args.show : true;
 
         // Node references
         this.graph = args.graph || null;
@@ -357,7 +388,7 @@ class Node {
         out.dif = c.dif || 0;
         //out.var = c.var || c.dif / n.parent.kids.length;
         out.dur = c.dur || 0;
-        out.bounce = c.hasOwnProperty("bounce") ? c.bounce : false;
+        out.bounce = 'bounce' in c ? c.bounce : true;
 
         if(out.ease == "noise") {
             out.noiseRad = c.noiseRad || 6;
@@ -389,6 +420,8 @@ class Node {
     }
 
     readTerm(term) {
+        if(! isNaN(term)) return term;
+
         let ps = term.split('*');
         let o = 1;
         for(let p of ps) {
@@ -414,14 +447,16 @@ class Node {
                 let ti;
                 if(val.bounce) ti = floor(t / (val.dur+1)) % 2 == 0 ? t % (val.dur+1) : (val.dur+1) - (t % (val.dur+1));
                 else ti = t % (val.dur+1);
-                x += (1 / val.dur) * ti + val.time;
+                x += (1 / val.dur) * ti * val.time;
                 //if(ti == 20) console.log(val.bounce);
             }
-            //if(x > 1) x %= 1;
-            if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
+            if(x > 1) x %= 1;
+            //if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
 
             if(val.ease == "noise") {
-                this[prop] = val.min + noise(val.noiseRad*cos(TWO_PI*x), val.noiseRad*sin(TWO_PI*x), val.noiseZ ) * val.dif;
+                this[prop] = val.min + noise(8 + val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ ) * val.dif;
+                //this[prop] = val.min + noise(x*val.noiseRad, val.noiseZ ) * val.dif;
+                if(this.ix == 12 && this.parent.ix == 12) console.log(t, x, "h" );
             } else {
                 this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
             }
@@ -451,8 +486,6 @@ function ease(type, x, p) {
         return p < 0 ? 1 - Math.pow(1-x, Math.abs(p)) : Math.pow(x, Math.abs(p));
     } else if (type == "sine") {
         return Math.sin(x*p*Math.PI*2) * 0.5 + 0.5;
-    } else if (type == "noise") {
-        return noise(x*16);
     } else {
         return x;
     }
@@ -521,33 +554,36 @@ function generateSimple() {
     let baseNum = int(random(2,6));
     let def = {
     props:{
+        capture: false,
+        captureTime: 300,
         render: { levels: [
-            {type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
-            {type:"circles", stroke: '#FFFFFF88', fill: '#66666688'}
+            //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"tree", stroke: '#000000BB', fill: '#00000000'}
         ] }
     },
     net:[
             {
-                num:baseNum,
+                num: 90,
                 type:"fan",
                 mirror:true,
-                size: 72,
-                weight: 0,
-                step: 120,
+                size: 600,
+                weight: 1,
+                step: 10,
                 //turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
                 turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                show: true,
                 children:[
                     {
-                        num:baseNum,
-                        type:"fan",
-                        mirror:baseNum%2 == 0 ? random(1) < 0.5 : false,
+                        num:30,
+                        type:"chain",
                         size: 36,
-                        weight: 8,
-                        step:{ min:180, dif:0, terms:"ix", ease:"none", pow:1 },
-                        turn:{ min:0, dif:random(2, TWO_PI), terms:"ix", ease:"none", pow:2 },
+                        weight: 2,
+                        step: 20,
+                        turn: { min:0, dif:TWO_PI, terms:"t+ix", ease:"noise", pow:2, dur:300, noiseRad:1, noiseZ:1 },
+                        show: true,
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
-                            {
+                            /*{
                                 num:int(24/baseNum),
                                 type:"fan",
                                 mirror:false,
@@ -572,7 +608,7 @@ function generateSimple() {
                                 children:[
 
                                 ]
-                            }
+                            }*/
                         ]
                     }
                 ]
@@ -587,50 +623,6 @@ function generateSimple() {
     return def;
 
 }
-
-/*function parseCurve(c, n) {
-    c.terms = c.terms || "ix";
-
-    let out = {};
-    out.ease = c.ease || "none";
-    out.pow = c.pow || 2;
-    out.min = c.min || 0;
-    //out.max = c.max || 1;
-    out.dif = c.dif || 0;
-    //out.var = c.var || c.dif / n.parent.kids.length;
-    out.dur = c.dur || 0;
-
-    out.base = 0;
-    out.time = 0;
-
-    let ts = c.terms.split('+')
-    for(let t of ts) {
-        let ps = t.split('*');
-        if(ps[0] == 't' || ps[0] == 'time') {
-            out.time = ps.length > 1 ? parseFloat(ps[1]) : 1;
-        } else if(ps[0] == 'tix') {
-            out.time = ps.length > 1 ? n.nrm * parseFloat(ps[1]) : n.nrm;
-        } else {
-            let trm = 1;
-            for(let p of ps) {
-                if(p == "ix") trm *= n.nrm;
-                else if(p == "rnd") trm *= n.rnd;
-                else if(p == "noise") trm *= noise(n.parent.nrm, n.nrm);
-                else if(p == "dix") trm *= n.parent.nrm;
-                else if(p == "drnd") trm *= n.parent.rnd;
-                else if(p == "depth") trm *= n.depth;
-                else if(p == "idepth") trm *= n.graph.depth - n.depth;
-                else if(p == "depth-nrm") trm *= 1/n.graph.depth * n.depth;
-                else if(p == "idepth-nrm") trm *= 1 - 1/n.graph.depth * n.depth;
-                else trm *= parseFloat(p);
-            }
-            out.base += trm;
-        }
-    }
-    //console.log("curve", n.graph.depth, n.depth, (n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth) );
-
-    return out;
-}*/
 
 function moveNode(n) {
     if(n.anchor !== null) {
@@ -657,46 +649,6 @@ function moveNode(n) {
         }
     }
 }
-
-/*function moveNode(n) {
-    if(n.anchor !== null) {
-        let trn;
-        if(isNaN(n.turn)) {
-            let x = n.turn.base;
-            if(n.turn.dur > 0) x += (1 / n.turn.dur) * (t % (n.turn.dur+1)) * n.turn.time;
-            x %= 1;
-            trn = n.parent.rot + (n.turn.min + ease(n.turn.ease, x, n.turn.pow) * n.turn.dif);
-            //if(n.parent.ix == 1) console.log(n.ix, n.parent.rot, n.turn.min, n.turn.ease, n.turn.pow, n.turn.dif);
-        } else {
-            trn = n.parent.rot + n.turn * n.ix;
-        }
-        let _mirror = int(n.parent.anchor != null && n.parent.mirror && n.parent.anchor.ix%2 == 0) ^ int( n.mirror && n.parent.ix%2 == 0);
-
-        n.rot = _mirror? n.parent.rot - trn : n.parent.rot + trn;
-        //n.rot %= (Math.PI*2);
-
-        let stp;
-        if(isNaN(n.step)) {
-            let x = n.step.base;
-            if(n.step.dur > 0) x += (1 / n.step.dur) * (t % (n.step.dur+1)) * n.step.time;
-            x %= 1;
-            stp = n.step.min + ease(n.step.ease, x, n.step.pow) * n.step.dif;
-            //if(n.parent.ix == 1) console.log(n.ix, stp, n.step.dif);
-        } else {
-            stp = n.step;
-        }
-        //console.log(n.ix, (0.999 / n.step.dur) * (t % (n.step.dur+1)) * n.step.time);
-
-        n.pos = [
-            n.anchor.pos[0] + stp * cos(n.rot),
-            n.anchor.pos[1] + stp * sin(n.rot)
-        ]
-    }
-
-    for(let k of n.kids) {
-        moveNode(k);
-    }
-}*/
 
 
 function drawNode(n) {
@@ -819,11 +771,29 @@ class RenderCurves {
         } else if(level.type== "circles") {
             for(let g of n.groups) {
                 for(let k=0; k<g.length; k++) {
+                    if(! g[k].show) continue;
                     let sz = g[k].size * level.sizeMult + level.sizeAdd;
                     fill(level.fill == "node" ? g[k].fill : level.fill);
                     stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
                     strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
                     ellipse( g[k].pos[0], g[k].pos[1], sz, sz);
+                }
+            }
+        } else if(level.type== "ripples") {
+            for(let g of n.groups) {
+                for(let k=0; k<g.length; k++) {
+                    if(! g[k].show) continue;
+                    let sz = g[k].size * level.sizeMult + level.sizeAdd;
+                    let wg = g[k].weight * level.weightMult + level.weightAdd ;
+                    if(wg <= 0) continue;
+                    fill(level.fill == "node" ? g[k].fill : level.fill);
+                    stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
+                    strokeWeight( wg );
+                    //ellipse( g[k].pos[0], g[k].pos[1], sz, sz);
+                    while(sz > 0) {
+                        ellipse( g[k].pos[0], g[k].pos[1], sz, sz);
+                        sz -= wg*4;
+                    }
                 }
             }
         }  else if(level.type== "star") {
@@ -984,6 +954,7 @@ class RenderCurves {
         } else if(level.type== "squares") {
             for(let g of n.groups) {
                 for(let k=0; k<g.length; k++) {
+                    if(! g[k].show) continue;
                     let sz = g[k].size * level.sizeMult + level.sizeAdd;
                     let cs = cos(g[k].rot), sn = sin(g[k].rot);
                     let pts = [
