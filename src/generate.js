@@ -53,46 +53,46 @@ function generateWithBudget() {
 
 function generateSimple() {
     let a1 = random(0.1, PI/2);//PI/2;
-    let baseNum = int(random(2,6));
+    let baseNum = int(random(4,8));
     let def = {
     props:{
         capture: false,
         captureTime: 300,
         render: { levels: [
             //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
-            {type:"tree", stroke: '#000000BB', fill: '#00000000'}
+            {type:"bezier", stroke: '#000000BB', fill: '#FFFFFFFF', close:true}
         ] }
     },
     net:[
             {
-                num: 90,
+                num: 60,
                 type:"fan",
                 mirror:true,
-                size: 600,
+                size: 90,
                 weight: 1,
-                step: 10,
+                step: 2,
                 //turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
-                turn:{ min:0, dif:TWO_PI, terms:"ix" },
-                show: true,
+                turn:{ min:0, dif:0, terms:"ix" },
+                show: false,
                 children:[
                     {
-                        num:30,
-                        type:"chain",
-                        size: 36,
-                        weight: 2,
-                        step: 20,
-                        turn: { min:0, dif:TWO_PI, terms:"t+ix", ease:"noise", pow:2, dur:300, noiseRad:1, noiseZ:1 },
+                        num:36,
+                        type:"fan",
+                        size: 60,
+                        weight: 1,
+                        step: { min:"40+dix*120", dif:40, terms:"t+dix", ease:"noise", dur:300, pow:1, noiseRad:1.5, noiseZ:"ix*4", noiseDetail:4, bounce:false },
+                        turn: { min:0, dif:TWO_PI, terms:"ix" },
                         show: true,
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
                             /*{
-                                num:int(24/baseNum),
+                                num:6,
                                 type:"fan",
                                 mirror:false,
-                                size: 26,
-                                weight: 4,
-                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:2000, noiseRad:1, noiseZ:"dix"},
-                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
+                                size: 30,
+                                weight: 1,
+                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:900, noiseRad:1, noiseZ:"dix", bounce:false},
+                                turn: { min:-2, dif:4, terms:"t+ix", ease:"noise", pow:2, dur:900, noiseRad:1, noiseZ:1, bounce:false },
                                 //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                                 children:[
 

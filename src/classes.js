@@ -66,17 +66,19 @@ class Node {
 
         let out = {};
         out.ease = c.ease || "none";
-        out.pow = c.pow || 2;
-        out.min = c.min || 0;
+        out.pow = 'pow' in c ? this.readTerms(c.pow) : 1;;
+        out.min = 'min' in c ? this.readTerms(c.min) : 0;
         //out.max = c.max || 1;
-        out.dif = c.dif || 0;
+        out.dif = 'dif' in c ? this.readTerms(c.dif) : 0;
         //out.var = c.var || c.dif / n.parent.kids.length;
-        out.dur = c.dur || 0;
+        out.dur = 'dur' in c ? this.readTerms(c.dur) : 0;
         out.bounce = 'bounce' in c ? c.bounce : true;
 
         if(out.ease == "noise") {
-            out.noiseRad = c.noiseRad || 6;
-            out.noiseZ = 'noiseZ' in c ? this.readTerm(c.noiseZ) : 1;
+            out.noiseRad = 'noiseRad' in c ? this.readTerms(c.noiseRad) : 2;
+            out.noiseZ = 'noiseZ' in c ? this.readTerms(c.noiseZ) : 1;
+            out.noiseDetail = 'noiseDetail' in c ? c.noiseDetail : 4;
+            noiseDetail(out.noiseDetail, 0.5);
         }
 
         out.base = 0;
@@ -90,17 +92,24 @@ class Node {
             } else if(ps[0] == 'tix') {
                 out.time = ps.length > 1 ? this.nrm * parseFloat(ps[1]) : this.nrm;
             } else {
-                /*let trm = 1;
-                for(let p of ps) {
-                    trm *= this.readTerm(p);
-                }
-                out.base += trm;*/
                 out.base += this.readTerm(t);
             }
         }
         //console.log("curve", n.graph.depth, n.depth, (n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth) );
 
         return out;
+    }
+
+    readTerms(terms) {
+        if(! isNaN(terms)) return terms;
+
+        let o = 0;
+        let ts = terms.split('+')
+        for(let t of ts) {
+            o += Number( this.readTerm(t) );
+        }
+
+        return o;
     }
 
     readTerm(term) {
@@ -117,7 +126,7 @@ class Node {
             else if(p == "idepth") o *= this.graph.depth - this.depth;
             else if(p == "depth-nrm") o *= 1/this.graph.depth * this.depth;
             else if(p == "idepth-nrm") o *= 1 - 1/this.graph.depth * this.depth;
-            else o *= parseFloat(p);
+            else o *= Number(p);
         }
 
         return o;
@@ -138,9 +147,11 @@ class Node {
             if(x > 1) x = floor(x%2) == 1 && val.bounce ? 1 - (x%1) : x % 1;
 
             if(val.ease == "noise") {
-                this[prop] = val.min + noise(8 + val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ ) * val.dif;
-                //this[prop] = val.min + noise(x*val.noiseRad, val.noiseZ ) * val.dif;
-                if(this.ix == 12 && this.parent.ix == 12) console.log(t, x, "h" );
+
+                //this[prop] = val.min + noise(8 + contrast(val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ ), val.pow) * val.dif;
+                let ns = noise(8 + val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ );
+                this[prop] = val.min + contrast(ns, val.pow)  * val.dif;
+                //if(this.ix == 12 && this.parent.ix == 12) console.log(t, x, "h" );
             } else {
                 this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
             }
@@ -178,4 +189,8 @@ function ease(type, x, p) {
 
 function pick(...opts) {
     return opts[floor(random(opts.length))];
+}
+
+function contrast(n, f) {
+  return constrain(f*(n-0.5) + 0.5, 0, 1);
 }

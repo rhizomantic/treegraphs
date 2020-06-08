@@ -28,87 +28,68 @@ var def0 = {
     }
 };
 
-var def = {
-  "props": {
-    "render": {
-      "levels": [
-        {
-          "type": "tree",
-          "stroke": "#00000088",
-          "fill": "#00000033",
-          "weightMult": 0,
-          "weightAdd": 1
+var noiseFlower = {
+    props:{
+        capture: false,
+        captureTime: 300,
+        render: { levels: [
+            //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"tree", stroke: '#000000BB', fill: '#FFFFFFFF', close:true}
+        ] }
+    },
+    net:[
+            {
+                pos: [540, 540],
+                num: 6,
+                type:"fan",
+                mirror:true,
+                size: 90,
+                weight: 1,
+                step: { min:40, dif:400, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                turn:{ min:0, dif:Math.PI*2, terms:"ix" },
+                show: false,
+                children:[
+                    {
+                        num:9,
+                        type:"fan",
+                        size: 60,
+                        weight: 1,
+                        step: { min:20, dif:200, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        turn: { min:0, dif:Math.PI*2, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        show: true,
+                        //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                        children:[
+                            /*{
+                                num:6,
+                                type:"fan",
+                                mirror:false,
+                                size: 30,
+                                weight: 1,
+                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:900, noiseRad:1, noiseZ:"dix", bounce:false},
+                                turn: { min:-2, dif:4, terms:"t+ix", ease:"noise", pow:2, dur:900, noiseRad:1, noiseZ:1, bounce:false },
+                                //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                                children:[
+
+                                ]
+                            },
+                            {
+                                num:int(18/baseNum),
+                                type:"fan",
+                                mirror:false,
+                                size: 16,
+                                weight: 4,
+                                step:{ min:60, dif:0, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
+                                //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                                children:[
+
+                                ]
+                            }*/
+                        ]
+                    }
+            ]
         }
-      ]
-    }
-  },
-  "net": [
-    {
-      "num": 4,
-      "type": "fan",
-      "mirror": true,
-      "size": 72,
-      "weight": 1,
-      "step": 300,
-      "turn": {
-        "min": 0,
-        "dif": 3.14,
-        "terms": "ix"
-      },
-      "children": [
-        {
-          "num": 12,
-          "type": "fan",
-          "mirror": true,
-          "size": 36,
-          "weight": 1,
-          "step": {
-            "min": 30,
-            "dif": 150,
-            "terms": "tix",
-            "ease": "none",
-            "pow": 3,
-            "dur": 200
-          },
-          "turn": {
-            "min": 0,
-            "dif": 3.14,
-            "var": 1.04,
-            "terms": "ix",
-            "pow": 2,
-            "dur": 200
-          },
-          "children": [
-            /*{
-              "num": 24,
-              "type": "fan",
-              "mirror": true,
-              "size": 6,
-              "weight": 1,
-              "step": {
-                "min": 100,
-                "dif": 200,
-                "terms": "t*0.5+ix*0.5",
-                "ease": "hill",
-                "pow": 3,
-                "dur": 200
-              },
-              "turn": {
-                "min": 0,
-                "dif": 4.85,
-                "terms": "ix"
-              },
-              "children": []
-          }*/
-          ]
-        }
-      ],
-      "pos": [
-        702.5,
-        479
-      ]
-    }
-  ]
+    ]
 };
 
 
@@ -146,7 +127,7 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = generateSimple();
+      _def = noiseFlower; //generateSimple();
   }
   //tickers.clear();
   background(backCol);
@@ -169,10 +150,13 @@ function reset(fromEditor) {
           format: 'webm',
           framerate:30,
           name:"vid",
-          verbose: true,
-          display: true
+          verbose: false,
+          display: true,
+          quality: 95
        } );
       //capturer.start();
+  } else {
+      capture = false;
   }
 
   render = new RenderCurves(_def);
@@ -291,7 +275,7 @@ function keyTyped() {
         else editor.show();
     }
     // uncomment to prevent any default behavior
-    //return false;
+    return false;
 }
 
 function contrast(n, f) {
@@ -382,17 +366,19 @@ class Node {
 
         let out = {};
         out.ease = c.ease || "none";
-        out.pow = c.pow || 2;
-        out.min = c.min || 0;
+        out.pow = 'pow' in c ? this.readTerms(c.pow) : 1;;
+        out.min = 'min' in c ? this.readTerms(c.min) : 0;
         //out.max = c.max || 1;
-        out.dif = c.dif || 0;
+        out.dif = 'dif' in c ? this.readTerms(c.dif) : 0;
         //out.var = c.var || c.dif / n.parent.kids.length;
-        out.dur = c.dur || 0;
+        out.dur = 'dur' in c ? this.readTerms(c.dur) : 0;
         out.bounce = 'bounce' in c ? c.bounce : true;
 
         if(out.ease == "noise") {
-            out.noiseRad = c.noiseRad || 6;
-            out.noiseZ = 'noiseZ' in c ? this.readTerm(c.noiseZ) : 1;
+            out.noiseRad = 'noiseRad' in c ? this.readTerms(c.noiseRad) : 2;
+            out.noiseZ = 'noiseZ' in c ? this.readTerms(c.noiseZ) : 1;
+            out.noiseDetail = 'noiseDetail' in c ? c.noiseDetail : 4;
+            noiseDetail(out.noiseDetail, 0.5);
         }
 
         out.base = 0;
@@ -406,17 +392,24 @@ class Node {
             } else if(ps[0] == 'tix') {
                 out.time = ps.length > 1 ? this.nrm * parseFloat(ps[1]) : this.nrm;
             } else {
-                /*let trm = 1;
-                for(let p of ps) {
-                    trm *= this.readTerm(p);
-                }
-                out.base += trm;*/
                 out.base += this.readTerm(t);
             }
         }
         //console.log("curve", n.graph.depth, n.depth, (n.graph.depth == 1 ? 0 : 1/n.graph.depth * n.depth) );
 
         return out;
+    }
+
+    readTerms(terms) {
+        if(! isNaN(terms)) return terms;
+
+        let o = 0;
+        let ts = terms.split('+')
+        for(let t of ts) {
+            o += Number( this.readTerm(t) );
+        }
+
+        return o;
     }
 
     readTerm(term) {
@@ -433,7 +426,7 @@ class Node {
             else if(p == "idepth") o *= this.graph.depth - this.depth;
             else if(p == "depth-nrm") o *= 1/this.graph.depth * this.depth;
             else if(p == "idepth-nrm") o *= 1 - 1/this.graph.depth * this.depth;
-            else o *= parseFloat(p);
+            else o *= Number(p);
         }
 
         return o;
@@ -450,13 +443,15 @@ class Node {
                 x += (1 / val.dur) * ti * val.time;
                 //if(ti == 20) console.log(val.bounce);
             }
-            if(x > 1) x %= 1;
-            //if(x > 1) x = floor(x%2) == 0 ? x%1 : 1 - (x%1);
+            //if(x > 1) x %= 1;
+            if(x > 1) x = floor(x%2) == 1 && val.bounce ? 1 - (x%1) : x % 1;
 
             if(val.ease == "noise") {
-                this[prop] = val.min + noise(8 + val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ ) * val.dif;
-                //this[prop] = val.min + noise(x*val.noiseRad, val.noiseZ ) * val.dif;
-                if(this.ix == 12 && this.parent.ix == 12) console.log(t, x, "h" );
+
+                //this[prop] = val.min + noise(8 + contrast(val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ ), val.pow) * val.dif;
+                let ns = noise(8 + val.noiseRad*cos(TWO_PI*x), 8 + val.noiseRad*sin(TWO_PI*x), val.noiseZ );
+                this[prop] = val.min + contrast(ns, val.pow)  * val.dif;
+                //if(this.ix == 12 && this.parent.ix == 12) console.log(t, x, "h" );
             } else {
                 this[prop] = val.min + ease(val.ease, x, val.pow) * val.dif;
             }
@@ -494,6 +489,10 @@ function ease(type, x, p) {
 
 function pick(...opts) {
     return opts[floor(random(opts.length))];
+}
+
+function contrast(n, f) {
+  return constrain(f*(n-0.5) + 0.5, 0, 1);
 }
 
 function generateWithBudget() {
@@ -551,46 +550,46 @@ function generateWithBudget() {
 
 function generateSimple() {
     let a1 = random(0.1, PI/2);//PI/2;
-    let baseNum = int(random(2,6));
+    let baseNum = int(random(4,8));
     let def = {
     props:{
         capture: false,
         captureTime: 300,
         render: { levels: [
             //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
-            {type:"tree", stroke: '#000000BB', fill: '#00000000'}
+            {type:"bezier", stroke: '#000000BB', fill: '#FFFFFFFF', close:true}
         ] }
     },
     net:[
             {
-                num: 90,
+                num: 60,
                 type:"fan",
                 mirror:true,
-                size: 600,
+                size: 90,
                 weight: 1,
-                step: 10,
+                step: 2,
                 //turn:{ min:PI/2+a1, dif:-a1*4, terms:"ix" },
-                turn:{ min:0, dif:TWO_PI, terms:"ix" },
-                show: true,
+                turn:{ min:0, dif:0, terms:"ix" },
+                show: false,
                 children:[
                     {
-                        num:30,
-                        type:"chain",
-                        size: 36,
-                        weight: 2,
-                        step: 20,
-                        turn: { min:0, dif:TWO_PI, terms:"t+ix", ease:"noise", pow:2, dur:300, noiseRad:1, noiseZ:1 },
+                        num:36,
+                        type:"fan",
+                        size: 60,
+                        weight: 1,
+                        step: { min:"40+dix*120", dif:40, terms:"t+dix", ease:"noise", dur:300, pow:1, noiseRad:1.5, noiseZ:"ix*4", noiseDetail:4, bounce:false },
+                        turn: { min:0, dif:TWO_PI, terms:"ix" },
                         show: true,
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
                             /*{
-                                num:int(24/baseNum),
+                                num:6,
                                 type:"fan",
                                 mirror:false,
-                                size: 26,
-                                weight: 4,
-                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:2000, noiseRad:1, noiseZ:"dix"},
-                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
+                                size: 30,
+                                weight: 1,
+                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:900, noiseRad:1, noiseZ:"dix", bounce:false},
+                                turn: { min:-2, dif:4, terms:"t+ix", ease:"noise", pow:2, dur:900, noiseRad:1, noiseZ:1, bounce:false },
                                 //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                                 children:[
 
@@ -861,15 +860,15 @@ class RenderCurves {
                         stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
                         strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
                         fill(level.fill == "node" ? g[k].fill : level.fill);
-                        // bezier(pts[0], pts[1], prv.pos[0], prv.pos[1], prv.pos[0], prv.pos[1], pts[2], pts[3]);
-                        // bezier(pts[0], pts[1], g[k].pos[0], g[k].pos[1], g[k].pos[0], g[k].pos[1], pts[2], pts[3]);
-                        beginShape();
+                        bezier(pts[0], pts[1], prv.pos[0], prv.pos[1], prv.pos[0], prv.pos[1], pts[2], pts[3]);
+                        bezier(pts[0], pts[1], g[k].pos[0], g[k].pos[1], g[k].pos[0], g[k].pos[1], pts[2], pts[3]);
+                        /*beginShape();
                         vertex(g[k].pos[0], g[k].pos[1]);
                         vertex(pts[0], pts[1]);
                         vertex(prv.pos[0], prv.pos[1]);
                         vertex(pts[2], pts[3]);
                         vertex(g[k].pos[0], g[k].pos[1]);
-                        endShape();
+                        endShape();*/
                     }
                 }
             }

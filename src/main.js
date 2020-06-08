@@ -28,87 +28,68 @@ var def0 = {
     }
 };
 
-var def = {
-  "props": {
-    "render": {
-      "levels": [
-        {
-          "type": "tree",
-          "stroke": "#00000088",
-          "fill": "#00000033",
-          "weightMult": 0,
-          "weightAdd": 1
+var noiseFlower = {
+    props:{
+        capture: false,
+        captureTime: 300,
+        render: { levels: [
+            //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"tree", stroke: '#000000BB', fill: '#FFFFFFFF', close:true}
+        ] }
+    },
+    net:[
+            {
+                pos: [540, 540],
+                num: 6,
+                type:"fan",
+                mirror:true,
+                size: 90,
+                weight: 1,
+                step: { min:40, dif:400, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                turn:{ min:0, dif:Math.PI*2, terms:"ix" },
+                show: false,
+                children:[
+                    {
+                        num:9,
+                        type:"fan",
+                        size: 60,
+                        weight: 1,
+                        step: { min:20, dif:200, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        turn: { min:0, dif:Math.PI*2, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        show: true,
+                        //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                        children:[
+                            /*{
+                                num:6,
+                                type:"fan",
+                                mirror:false,
+                                size: 30,
+                                weight: 1,
+                                step:{ min:60, dif:180, terms:"t", ease:"noise", pow:random(-4, 4), dur:900, noiseRad:1, noiseZ:"dix", bounce:false},
+                                turn: { min:-2, dif:4, terms:"t+ix", ease:"noise", pow:2, dur:900, noiseRad:1, noiseZ:1, bounce:false },
+                                //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                                children:[
+
+                                ]
+                            },
+                            {
+                                num:int(18/baseNum),
+                                type:"fan",
+                                mirror:false,
+                                size: 16,
+                                weight: 4,
+                                step:{ min:60, dif:0, terms:"ix*"+pick(1,2,3,4), ease:"hill", pow:random(-4, 4)},
+                                turn:{ min:0, dif:pick(1.78, 3.14, 6.28, 8), terms:"ix" },
+                                //turn:{ min:0, dif:TWO_PI, terms:"ix" },
+                                children:[
+
+                                ]
+                            }*/
+                        ]
+                    }
+            ]
         }
-      ]
-    }
-  },
-  "net": [
-    {
-      "num": 4,
-      "type": "fan",
-      "mirror": true,
-      "size": 72,
-      "weight": 1,
-      "step": 300,
-      "turn": {
-        "min": 0,
-        "dif": 3.14,
-        "terms": "ix"
-      },
-      "children": [
-        {
-          "num": 12,
-          "type": "fan",
-          "mirror": true,
-          "size": 36,
-          "weight": 1,
-          "step": {
-            "min": 30,
-            "dif": 150,
-            "terms": "tix",
-            "ease": "none",
-            "pow": 3,
-            "dur": 200
-          },
-          "turn": {
-            "min": 0,
-            "dif": 3.14,
-            "var": 1.04,
-            "terms": "ix",
-            "pow": 2,
-            "dur": 200
-          },
-          "children": [
-            /*{
-              "num": 24,
-              "type": "fan",
-              "mirror": true,
-              "size": 6,
-              "weight": 1,
-              "step": {
-                "min": 100,
-                "dif": 200,
-                "terms": "t*0.5+ix*0.5",
-                "ease": "hill",
-                "pow": 3,
-                "dur": 200
-              },
-              "turn": {
-                "min": 0,
-                "dif": 4.85,
-                "terms": "ix"
-              },
-              "children": []
-          }*/
-          ]
-        }
-      ],
-      "pos": [
-        702.5,
-        479
-      ]
-    }
-  ]
+    ]
 };
 
 
@@ -146,7 +127,7 @@ function reset(fromEditor) {
   if(fromEditor) {
       _def = JSON.parse(area.value());
   } else {
-      _def = generateSimple();
+      _def = noiseFlower; //generateSimple();
   }
   //tickers.clear();
   background(backCol);
@@ -169,10 +150,13 @@ function reset(fromEditor) {
           format: 'webm',
           framerate:30,
           name:"vid",
-          verbose: true,
-          display: true
+          verbose: false,
+          display: true,
+          quality: 95
        } );
       //capturer.start();
+  } else {
+      capture = false;
   }
 
   render = new RenderCurves(_def);
@@ -291,7 +275,7 @@ function keyTyped() {
         else editor.show();
     }
     // uncomment to prevent any default behavior
-    //return false;
+    return false;
 }
 
 function contrast(n, f) {

@@ -209,15 +209,15 @@ class RenderCurves {
                         stroke(level.stroke == "node" ? g[k].stroke : level.stroke);
                         strokeWeight( g[k].weight * level.weightMult + level.weightAdd );
                         fill(level.fill == "node" ? g[k].fill : level.fill);
-                        // bezier(pts[0], pts[1], prv.pos[0], prv.pos[1], prv.pos[0], prv.pos[1], pts[2], pts[3]);
-                        // bezier(pts[0], pts[1], g[k].pos[0], g[k].pos[1], g[k].pos[0], g[k].pos[1], pts[2], pts[3]);
-                        beginShape();
+                        bezier(pts[0], pts[1], prv.pos[0], prv.pos[1], prv.pos[0], prv.pos[1], pts[2], pts[3]);
+                        bezier(pts[0], pts[1], g[k].pos[0], g[k].pos[1], g[k].pos[0], g[k].pos[1], pts[2], pts[3]);
+                        /*beginShape();
                         vertex(g[k].pos[0], g[k].pos[1]);
                         vertex(pts[0], pts[1]);
                         vertex(prv.pos[0], prv.pos[1]);
                         vertex(pts[2], pts[3]);
                         vertex(g[k].pos[0], g[k].pos[1]);
-                        endShape();
+                        endShape();*/
                     }
                 }
             }
