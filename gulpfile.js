@@ -11,10 +11,10 @@ var jsFiles = ['src/main.js', 'src/classes.js', 'src/generate.js', 'src/spread.j
 
 function defaultTask(cb) {
     return gulp.src(jsFiles)
-        .pipe(sourcemaps.init())
+        //.pipe(sourcemaps.init())
         .pipe(concat('bundle.js'))
         .pipe(minify())
-        .pipe(sourcemaps.write('maps'))
+        //.pipe(sourcemaps.write('maps'))
         .pipe(gulp.dest(jsDest));
 }
 

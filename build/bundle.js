@@ -8,7 +8,7 @@ var captureTime = 0;
 var capturer;
 var render;
 var canvas, editor, area;
-var tweenable = ["step", "turn", "size", "weight"];
+var tweenable = ["step", "turn", "rot", "fan", "size", "weight"];
 var backCol = "#FFFFFF";
 
 // pi/2 = 1.5707
@@ -45,17 +45,22 @@ var noiseFlower = {
                 mirror:true,
                 size: 90,
                 weight: 1,
-                step: { min:40, dif:400, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
-                turn:{ min:0, dif:Math.PI*2, terms:"ix" },
+                step: { min:200, dif:40, terms:"t", ease:"IO", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                turn:{ min:0, dif:1, terms:"ix" },
+                fan: Math.PI*2,
+                rot: { min:0, dif:6.28, terms:"t", ease:"none", dur:1000, bounce:false },
                 show: false,
                 children:[
                     {
                         num:9,
                         type:"fan",
+                        mirror: true,
                         size: 60,
                         weight: 1,
                         step: { min:20, dif:200, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
-                        turn: { min:0, dif:Math.PI*2, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        //turn: { min:-Math.PI/2, dif:Math.PI, terms:"tix", ease:"hill", dur:500, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        turn: { min:0, dif:1, terms:"ix", ease:"none", dur:500, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        fan: { min:0, dif:4, terms:"t", ease:"none", dur:500,bounce:true },
                         show: true,
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
@@ -89,6 +94,33 @@ var noiseFlower = {
                     }
             ]
         }
+    ]
+};
+
+
+var shape = {
+    props:{
+        capture: false,
+        captureTime: 300,
+        render: { levels: [
+            //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"tree", stroke: '#000000BB', fill: '#FFFFFFFF', close:true},
+            {type:"bezier", stroke: '#000000BB', fill: '#FFFFFFFF', close:true}
+        ] }
+    },
+    net:[
+            {
+                pos: [540, 540],
+                num: 180,
+                type:"fan",
+                mirror:true,
+                size: 90,
+                weight: 1,
+                step: { min:200, dif:40, terms:"ix", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                show: true,
+                children:[
+                ]
+            }
     ]
 };
 
@@ -132,9 +164,9 @@ function reset(fromEditor) {
   //tickers.clear();
   background(backCol);
   t = 0;
-  seed = int(random(999999));
-  randomSeed(seed);
-  noiseSeed(seed);
+  seed = Math.random(); //int(random(999999));
+  randomSeed(int(seed*999999));
+  noiseSeed(int(seed*999999));
 
   graphs = [];
   //let _def = generate();
@@ -224,16 +256,23 @@ function makeGroup(gix, g, dad, graph) {
 
         //n.turn = isNaN(g.turn) ? parseCurve(g.turn, n) : g.turn;// n.parent.turn + g.turn * n.ix;
         //n.step = isNaN(g.step) ? parseCurve(g.step, n) : g.step;
-        n.type = g.type;
-        n.rot = 0;
-        n.turn = g.turn;
-        n.step = g.step;
+        n.type = "type" in g ? g.type : 'fan';
+        // n.turn = "turn" in g ? g.turn : 0;
+        // n.rot = "rot" in g ? g.rot : 0;
+        // n.fan = "fan" in g ? g.fan : TWO_PI;
+        // n.step = "step" in g ? g.step : 30;
+        if('turn' in g) n.turn = g.turn;
+        if('rot' in g) n.rot = g.rot;
+        if('fan' in g) n.fan = g.fan;
+        if('step' in g) n.step = g.step;
         n.mirror = g.mirror;
         n.size = g.size;
         n.weight = g.weight;
         n.fill = g.fill;
         n.stroke = g.stroke;
         n.show = 'show' in g ? g.show : true;
+
+        console.log("makeGroup init", n);
 
         n.init();
 
@@ -305,10 +344,12 @@ class Graph {
     this.count = 0;
     this.depth = 0;
 
-    this.root = new Node( {pos: args.net[0].pos} );
+    this.root = new Node();
+    this.root.pos = args.net[0].pos;
     for(let i=0; i<args.net.length; i++){
         makeGroup(i, args.net[i], this.root, this);
     }
+    console.log("Graph init", this.root);
     this.root.init();
 
     console.log("graph", this);
@@ -318,15 +359,17 @@ class Graph {
 /***** NODE *****/
 class Node {
     constructor(args = {}) {
+
         //properties
-        this.ix = args.ix || 0;
+        /*this.ix = args.ix || 0;
         this.gix = args.gix || 0;
         this.nrm = args.nrm || 0;
         this.rnd = args.rnd || Math.random();
         this.pos = args.pos || [windowWidth / 2, windowHeight / 2];
         this.step = args.step || 30;
         this.turn = args.turn || 0;
-        this.rot = args.rot || 0;
+        this.rot = args.rot == undefined ? 0 : args.rot; //'rot' in args ? args.rot : 0; //args.rot || 0;
+        this.fan = 'fan' in args ? args.fan : 0; //args.fan || TWO_PI;
         this.mirror = args.mirror || false;
         this.size = args.size || 20;
         this.weight = args.weight || 1;
@@ -340,22 +383,51 @@ class Node {
         this.parent = args.parent || null;
         this.anchor = args.anchor || null;
         //this.kids = args.kids || [];
-        this.groups = args.groups || [];
+        this.groups = args.groups || [];*/
 
+        this.ix = 0;
+        this.gix = 0;
+        this.nrm = 0;
+        this.rnd = Math.random();
+        this.pos = [windowWidth / 2, windowHeight / 2];
+        this.step = 30;
+        this.turn = { min:0, dif:1 };
+        this.rot = 0;
+        this.fan = TWO_PI;
+        this.mirror = false;
+        this.size = 20;
+        this.weight = 1;
+        this.depth = 0;
+        this.fill = "#888888";
+        this.stroke = 0;
+        this.show = true;
+
+        // Node references
+        this.graph = null;
+        this.parent = null;
+        this.anchor = null;
+        this.groups = [];
+
+        this._trn = 0;
         this.curves = {};
+
+        //console.log("args:", args, "this:", this);
 
     }
 
     init() {
         for (let tw of tweenable) {
             if (isNaN(this[tw])) {
-                this.curves[tw] = this.parseCurve(this[tw]);
+                console.log(tw, this[tw]);
+                if(typeof this[tw] === 'string') this[tw] = this.readTerms(this[tw]);
+                else this.curves[tw] = this.parseCurve(this[tw]);
             }
         }
 
 
         for(let g of this.groups) {
             for(let k of g) {
+                //console.log("init init", k);
                 k.init();
             }
         }
@@ -369,7 +441,7 @@ class Node {
         out.pow = 'pow' in c ? this.readTerms(c.pow) : 1;;
         out.min = 'min' in c ? this.readTerms(c.min) : 0;
         //out.max = c.max || 1;
-        out.dif = 'dif' in c ? this.readTerms(c.dif) : 0;
+        out.dif = 'dif' in c ? this.readTerms(c.dif) : 1;
         //out.var = c.var || c.dif / n.parent.kids.length;
         out.dur = 'dur' in c ? this.readTerms(c.dur) : 0;
         out.bounce = 'bounce' in c ? c.bounce : true;
@@ -422,6 +494,7 @@ class Node {
             else if(p == "rnd") o *= this.rnd;
             else if(p == "dix") o *= this.parent.nrm;
             else if(p == "drnd") o *= this.parent.rnd;
+            else if(p == "seed") o *= seed;
             else if(p == "depth") o *= this.depth;
             else if(p == "idepth") o *= this.graph.depth - this.depth;
             else if(p == "depth-nrm") o *= 1/this.graph.depth * this.depth;
@@ -629,11 +702,14 @@ function moveNode(n) {
 
         let _mirror = (n.parent.anchor != null && n.parent.mirror && n.parent.anchor.ix%2 == 0) ^ ( n.mirror && n.parent.ix%2 == 0);
 
-        n.rot = _mirror? n.parent.rot - n.turn : n.parent.rot + n.turn;
+        //n.rot = _mirror? n.parent.rot - n.turn : n.parent.rot + n.turn;
+        let a = n.parent.rot + n.fan * (n.turn - 0.5);
+        //n._trn = n.parent._trn + n.parent.rot + (_mirror ? n.fan * (n.turn - 0.5) : n.fan * (1 - (n.turn - 0.5)));
+        n._trn = _mirror? n.parent._trn - a : n.parent._trn + a;
 
         n.pos = [
-            n.anchor.pos[0] + n.step * cos(n.rot),
-            n.anchor.pos[1] + n.step * sin(n.rot)
+            n.anchor.pos[0] + n.step * cos(n._trn),
+            n.anchor.pos[1] + n.step * sin(n._trn)
         ]
 
         //if(t == 5) console.log(n.depth, n.ix, n.step, n.rot);
@@ -1000,5 +1076,3 @@ class RenderCurves {
         }
     }
 }
-
-//# sourceMappingURL=maps/bundle.js.map

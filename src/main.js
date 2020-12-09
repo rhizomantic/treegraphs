@@ -8,7 +8,7 @@ var captureTime = 0;
 var capturer;
 var render;
 var canvas, editor, area;
-var tweenable = ["step", "turn", "size", "weight"];
+var tweenable = ["step", "turn", "rot", "fan", "size", "weight"];
 var backCol = "#FFFFFF";
 
 // pi/2 = 1.5707
@@ -45,17 +45,22 @@ var noiseFlower = {
                 mirror:true,
                 size: 90,
                 weight: 1,
-                step: { min:40, dif:400, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
-                turn:{ min:0, dif:Math.PI*2, terms:"ix" },
+                step: { min:200, dif:40, terms:"t", ease:"IO", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                turn:{ min:0, dif:1, terms:"ix" },
+                fan: Math.PI*2,
+                rot: { min:0, dif:6.28, terms:"t", ease:"none", dur:1000, bounce:false },
                 show: false,
                 children:[
                     {
                         num:9,
                         type:"fan",
+                        mirror: true,
                         size: 60,
                         weight: 1,
                         step: { min:20, dif:200, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
-                        turn: { min:0, dif:Math.PI*2, terms:"t", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        //turn: { min:-Math.PI/2, dif:Math.PI, terms:"tix", ease:"hill", dur:500, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        turn: { min:0, dif:1, terms:"ix", ease:"none", dur:500, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                        fan: { min:0, dif:4, terms:"t", ease:"none", dur:500,bounce:true },
                         show: true,
                         //turn:{ min:0, dif:TWO_PI, terms:"ix" },
                         children:[
@@ -89,6 +94,33 @@ var noiseFlower = {
                     }
             ]
         }
+    ]
+};
+
+
+var shape = {
+    props:{
+        capture: false,
+        captureTime: 300,
+        render: { levels: [
+            //{type:"cousins", close:true, stroke: '#FFCC0099', fill: '#33333388', weightMult:0, weightAdd:1 },
+            {type:"tree", stroke: '#000000BB', fill: '#FFFFFFFF', close:true},
+            {type:"bezier", stroke: '#000000BB', fill: '#FFFFFFFF', close:true}
+        ] }
+    },
+    net:[
+            {
+                pos: [540, 540],
+                num: 180,
+                type:"fan",
+                mirror:true,
+                size: 90,
+                weight: 1,
+                step: { min:200, dif:40, terms:"ix", ease:"noise", dur:1000, pow:1, noiseRad:1.5, noiseZ:1, noiseDetail:4, bounce:false },
+                show: true,
+                children:[
+                ]
+            }
     ]
 };
 
@@ -132,9 +164,9 @@ function reset(fromEditor) {
   //tickers.clear();
   background(backCol);
   t = 0;
-  seed = int(random(999999));
-  randomSeed(seed);
-  noiseSeed(seed);
+  seed = Math.random(); //int(random(999999));
+  randomSeed(int(seed*999999));
+  noiseSeed(int(seed*999999));
 
   graphs = [];
   //let _def = generate();
@@ -224,16 +256,23 @@ function makeGroup(gix, g, dad, graph) {
 
         //n.turn = isNaN(g.turn) ? parseCurve(g.turn, n) : g.turn;// n.parent.turn + g.turn * n.ix;
         //n.step = isNaN(g.step) ? parseCurve(g.step, n) : g.step;
-        n.type = g.type;
-        n.rot = 0;
-        n.turn = g.turn;
-        n.step = g.step;
+        n.type = "type" in g ? g.type : 'fan';
+        // n.turn = "turn" in g ? g.turn : 0;
+        // n.rot = "rot" in g ? g.rot : 0;
+        // n.fan = "fan" in g ? g.fan : TWO_PI;
+        // n.step = "step" in g ? g.step : 30;
+        if('turn' in g) n.turn = g.turn;
+        if('rot' in g) n.rot = g.rot;
+        if('fan' in g) n.fan = g.fan;
+        if('step' in g) n.step = g.step;
         n.mirror = g.mirror;
         n.size = g.size;
         n.weight = g.weight;
         n.fill = g.fill;
         n.stroke = g.stroke;
         n.show = 'show' in g ? g.show : true;
+
+        console.log("makeGroup init", n);
 
         n.init();
 

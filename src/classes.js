@@ -5,10 +5,12 @@ class Graph {
     this.count = 0;
     this.depth = 0;
 
-    this.root = new Node( {pos: args.net[0].pos} );
+    this.root = new Node();
+    this.root.pos = args.net[0].pos;
     for(let i=0; i<args.net.length; i++){
         makeGroup(i, args.net[i], this.root, this);
     }
+    console.log("Graph init", this.root);
     this.root.init();
 
     console.log("graph", this);
@@ -18,15 +20,17 @@ class Graph {
 /***** NODE *****/
 class Node {
     constructor(args = {}) {
+
         //properties
-        this.ix = args.ix || 0;
+        /*this.ix = args.ix || 0;
         this.gix = args.gix || 0;
         this.nrm = args.nrm || 0;
         this.rnd = args.rnd || Math.random();
         this.pos = args.pos || [windowWidth / 2, windowHeight / 2];
         this.step = args.step || 30;
         this.turn = args.turn || 0;
-        this.rot = args.rot || 0;
+        this.rot = args.rot == undefined ? 0 : args.rot; //'rot' in args ? args.rot : 0; //args.rot || 0;
+        this.fan = 'fan' in args ? args.fan : 0; //args.fan || TWO_PI;
         this.mirror = args.mirror || false;
         this.size = args.size || 20;
         this.weight = args.weight || 1;
@@ -40,22 +44,51 @@ class Node {
         this.parent = args.parent || null;
         this.anchor = args.anchor || null;
         //this.kids = args.kids || [];
-        this.groups = args.groups || [];
+        this.groups = args.groups || [];*/
 
+        this.ix = 0;
+        this.gix = 0;
+        this.nrm = 0;
+        this.rnd = Math.random();
+        this.pos = [windowWidth / 2, windowHeight / 2];
+        this.step = 30;
+        this.turn = { min:0, dif:1 };
+        this.rot = 0;
+        this.fan = TWO_PI;
+        this.mirror = false;
+        this.size = 20;
+        this.weight = 1;
+        this.depth = 0;
+        this.fill = "#888888";
+        this.stroke = 0;
+        this.show = true;
+
+        // Node references
+        this.graph = null;
+        this.parent = null;
+        this.anchor = null;
+        this.groups = [];
+
+        this._trn = 0;
         this.curves = {};
+
+        //console.log("args:", args, "this:", this);
 
     }
 
     init() {
         for (let tw of tweenable) {
             if (isNaN(this[tw])) {
-                this.curves[tw] = this.parseCurve(this[tw]);
+                console.log(tw, this[tw]);
+                if(typeof this[tw] === 'string') this[tw] = this.readTerms(this[tw]);
+                else this.curves[tw] = this.parseCurve(this[tw]);
             }
         }
 
 
         for(let g of this.groups) {
             for(let k of g) {
+                //console.log("init init", k);
                 k.init();
             }
         }
@@ -69,7 +102,7 @@ class Node {
         out.pow = 'pow' in c ? this.readTerms(c.pow) : 1;;
         out.min = 'min' in c ? this.readTerms(c.min) : 0;
         //out.max = c.max || 1;
-        out.dif = 'dif' in c ? this.readTerms(c.dif) : 0;
+        out.dif = 'dif' in c ? this.readTerms(c.dif) : 1;
         //out.var = c.var || c.dif / n.parent.kids.length;
         out.dur = 'dur' in c ? this.readTerms(c.dur) : 0;
         out.bounce = 'bounce' in c ? c.bounce : true;
@@ -122,6 +155,9 @@ class Node {
             else if(p == "rnd") o *= this.rnd;
             else if(p == "dix") o *= this.parent.nrm;
             else if(p == "drnd") o *= this.parent.rnd;
+            else if(p == "seed") o *= seed;
+            else if(p == "pi") o *= PI;
+            else if(p == "2pi") o *= TWO_PI;
             else if(p == "depth") o *= this.depth;
             else if(p == "idepth") o *= this.graph.depth - this.depth;
             else if(p == "depth-nrm") o *= 1/this.graph.depth * this.depth;
